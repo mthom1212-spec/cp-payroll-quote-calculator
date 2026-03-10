@@ -542,14 +542,14 @@ export default function PayrollQuoteCalculator() {
 
         {/* Page 2: Services Included (Client Facing Only) */}
         {clientFacing && (
-          <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break">
+          <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break print-services-compact">
 
             {/* Services Header */}
-            <div className="bg-brand-navy text-white p-8">
+            <div className="bg-brand-navy text-white p-8 services-header">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold font-display tracking-tight">Creative Planning Payroll</h1>
-                  <div className="w-12 h-0.5 bg-brand-gold mt-2 mb-6"></div>
+                  <div className="w-12 h-0.5 bg-brand-gold mt-2 mb-4"></div>
                   <p className="opacity-70 text-xs uppercase tracking-widest">Services Included For</p>
                   <h2 className="text-xl font-bold mt-1 font-display">
                     {clientName || <span className="opacity-40 italic">[Client Name]</span>}
@@ -563,40 +563,39 @@ export default function PayrollQuoteCalculator() {
             </div>
 
             {/* Services Body */}
-            <div className="p-8">
-              <div className="space-y-8">
+            <div className="p-8 print-services-compact">
+              <div className="space-y-6">
                 {Object.entries(MODULE_SERVICES).map(([key, moduleData]) => {
                   if (!selectedModules[key]) return null;
 
                   return (
-                    <div key={key}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-1 h-6 bg-brand-gold rounded-full"></div>
-                        <h3 className="text-lg font-bold text-brand-navy font-display">{moduleData.name}</h3>
+                    <div key={key} className="services-module-group">
+                      <div className="flex items-center gap-3 mb-3 services-module-title">
+                        <div className="w-1 h-5 bg-brand-gold rounded-full services-accent-bar"></div>
+                        <h3 className="text-base font-bold text-brand-navy font-display">{moduleData.name}</h3>
                       </div>
                       <div className="ml-4">
-                        <ul className="grid grid-cols-1 gap-2">
+                        <ul className="grid grid-cols-1 gap-1.5 services-list">
                           {moduleData.services.map((service, idx) => (
-                            <li key={idx} className="flex items-start gap-3 text-sm text-slate-700">
+                            <li key={idx} className="flex items-start gap-2.5 text-[13px] text-slate-700">
                               <span className="text-brand-gold mt-0.5 flex-shrink-0">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
                               </span>
-                              <span className="leading-relaxed">{service}</span>
+                              <span className="leading-snug">{service}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
-                      {/* Divider between modules */}
-                      <div className="mt-6 border-b border-stone-100"></div>
+                      <div className="mt-4 border-b border-stone-100 services-divider"></div>
                     </div>
                   );
                 })}
               </div>
 
               {/* Footer */}
-              <div className="mt-8 pt-4 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300">
+              <div className="mt-6 pt-3 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300 services-footer">
                 <span>Creative Planning Payroll &bull; Confidential</span>
                 <span>Generated {formatDate(quoteDate)}</span>
               </div>
