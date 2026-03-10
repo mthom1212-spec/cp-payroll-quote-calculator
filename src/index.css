@@ -96,6 +96,10 @@ body {
     padding: 1rem 1.5rem !important;
   }
 
+  .quote-header * {
+    visibility: visible !important;
+  }
+
   .print-container .p-8 {
     padding: 1.25rem 1.5rem !important;
   }
@@ -157,6 +161,15 @@ body {
   .print-services-compact .services-footer {
     margin-top: 0.75rem !important;
     padding-top: 0.5rem !important;
+  }
+
+  .print-services-compact .services-contact {
+    margin-top: 1rem !important;
+    padding: 0.75rem !important;
+  }
+
+  .print-services-compact .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 

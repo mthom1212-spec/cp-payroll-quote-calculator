@@ -404,20 +404,20 @@ export default function PayrollQuoteCalculator() {
                   <div className="text-[10px] opacity-70 uppercase tracking-wider">Date Issued</div>
                   <div className="font-semibold mt-0.5">{formatDate(quoteDate)}</div>
                 </div>
-                <div className="bg-white/10 backdrop-blur px-4 py-3 rounded-lg text-left">
+                <div className="bg-[#00617f] px-4 py-3 rounded-lg text-left">
                   <div className="flex items-center gap-4">
                     <div>
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <Icon.Users className="w-3 h-3 opacity-70" />
-                        <span className="text-[9px] uppercase tracking-wider opacity-70">Employees</span>
+                        <Icon.Users className="w-3 h-3 text-white/70" />
+                        <span className="text-[9px] uppercase tracking-wider text-white/70">Employees</span>
                       </div>
                       <div className="text-lg font-bold">{employeeCount}</div>
                     </div>
-                    <div className="w-px h-8 bg-white/20"></div>
+                    <div className="w-px h-8 bg-white/30"></div>
                     <div>
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <Icon.Calendar className="w-3 h-3 opacity-70" />
-                        <span className="text-[9px] uppercase tracking-wider opacity-70">Frequency</span>
+                        <Icon.Calendar className="w-3 h-3 text-white/70" />
+                        <span className="text-[9px] uppercase tracking-wider text-white/70">Frequency</span>
                       </div>
                       <div className="text-sm font-semibold">{FREQUENCIES[frequency].label}</div>
                     </div>
@@ -579,6 +579,8 @@ export default function PayrollQuoteCalculator() {
               <div className="space-y-6">
                 {Object.entries(MODULE_SERVICES).map(([key, moduleData]) => {
                   if (!selectedModules[key]) return null;
+                  const activeServiceModules = Object.keys(MODULE_SERVICES).filter(k => selectedModules[k]);
+                  const useColumns = activeServiceModules.length === 1;
 
                   return (
                     <div key={key} className="services-module-group">
@@ -590,7 +592,7 @@ export default function PayrollQuoteCalculator() {
                         </div>
                       </div>
                       <div className="ml-4">
-                        <ul className="grid grid-cols-1 gap-1.5 services-list">
+                        <ul className={`grid gap-1.5 services-list ${useColumns ? 'grid-cols-2' : 'grid-cols-1'}`}>
                           {moduleData.services.map((service, idx) => (
                             <li key={idx} className="flex items-start gap-2.5 text-[13px] text-slate-700">
                               <span className="text-brand-gold mt-0.5 flex-shrink-0">
@@ -607,6 +609,16 @@ export default function PayrollQuoteCalculator() {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Contact / Next Steps */}
+              <div className="mt-8 bg-brand-navy/5 border border-brand-navy/10 rounded-xl p-6 services-contact">
+                <div className="text-center">
+                  <p className="text-sm font-bold text-brand-navy font-display">Ready to get started?</p>
+                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed max-w-md mx-auto">
+                    Contact your Creative Planning Payroll representative to discuss your customized solution and begin onboarding.
+                  </p>
+                </div>
               </div>
 
               {/* Footer */}
