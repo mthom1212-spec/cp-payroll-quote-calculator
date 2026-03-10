@@ -389,32 +389,39 @@ export default function PayrollQuoteCalculator() {
         <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto print-container">
 
           {/* Quote Header */}
-          <div className="bg-brand-navy text-white p-8">
-            <div className="flex justify-between items-start">
+          <div className="bg-brand-navy text-white p-6 quote-header">
+            <div className="flex justify-between items-center">
               <div className="flex-1">
-                <h1 className="text-2xl font-bold font-display tracking-tight">Creative Planning Payroll</h1>
-                <div className="w-12 h-0.5 bg-brand-gold mt-2 mb-6"></div>
-                <p className="opacity-70 text-xs uppercase tracking-widest">Quote Prepared For</p>
-                <h2 className="text-xl font-bold mt-1 font-display">
+                <h1 className="text-xl font-bold font-display tracking-tight">Creative Planning Payroll</h1>
+                <div className="w-10 h-0.5 bg-brand-gold mt-1.5 mb-3"></div>
+                <p className="opacity-70 text-[10px] uppercase tracking-widest">Quote Prepared For</p>
+                <h2 className="text-lg font-bold mt-0.5 font-display">
                   {clientName || <span className="opacity-40 italic">[Client Name]</span>}
                 </h2>
               </div>
-              <div className="text-right">
-                <div className="text-xs opacity-70 uppercase tracking-wider">Date Issued</div>
-                <div className="font-semibold text-lg mt-0.5">{formatDate(quoteDate)}</div>
-
-                <div className="mt-4 bg-white/10 backdrop-blur p-4 rounded-lg text-left min-w-[160px]">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Icon.Users className="w-3.5 h-3.5 opacity-70" />
-                    <span className="text-[10px] uppercase tracking-wider opacity-70">Employees</span>
+              <div className="text-right flex items-start gap-6">
+                <div>
+                  <div className="text-[10px] opacity-70 uppercase tracking-wider">Date Issued</div>
+                  <div className="font-semibold mt-0.5">{formatDate(quoteDate)}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur px-4 py-3 rounded-lg text-left">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Icon.Users className="w-3 h-3 opacity-70" />
+                        <span className="text-[9px] uppercase tracking-wider opacity-70">Employees</span>
+                      </div>
+                      <div className="text-lg font-bold">{employeeCount}</div>
+                    </div>
+                    <div className="w-px h-8 bg-white/20"></div>
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Icon.Calendar className="w-3 h-3 opacity-70" />
+                        <span className="text-[9px] uppercase tracking-wider opacity-70">Frequency</span>
+                      </div>
+                      <div className="text-sm font-semibold">{FREQUENCIES[frequency].label}</div>
+                    </div>
                   </div>
-                  <div className="text-xl font-bold mb-3">{employeeCount}</div>
-
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Icon.Calendar className="w-3.5 h-3.5 opacity-70" />
-                    <span className="text-[10px] uppercase tracking-wider opacity-70">Frequency</span>
-                  </div>
-                  <div className="text-sm font-semibold">{FREQUENCIES[frequency].label}</div>
                 </div>
               </div>
             </div>

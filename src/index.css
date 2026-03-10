@@ -91,6 +91,29 @@ body {
     print-color-adjust: exact !important;
   }
 
+  /* Compact pricing page header and body for print */
+  .quote-header {
+    padding: 1rem 1.5rem !important;
+  }
+
+  .print-container .p-8 {
+    padding: 1.25rem 1.5rem !important;
+  }
+
+  .print-container table {
+    margin-bottom: 1rem !important;
+  }
+
+  .print-container tbody td {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .print-container tfoot td {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+  }
+
   /* Compact services page to fit on one printed page */
   .print-services-compact {
     padding: 1.25rem 1.5rem !important;
