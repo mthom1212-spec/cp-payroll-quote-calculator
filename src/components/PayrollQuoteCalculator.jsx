@@ -386,7 +386,7 @@ export default function PayrollQuoteCalculator() {
         </section>
 
         {/* Quote Preview / Print Sheet */}
-        <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto print-container">
+        <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto print-container print-page-fill">
 
           {/* Quote Header */}
           <div className="bg-brand-navy text-white p-6 quote-header">
@@ -428,7 +428,8 @@ export default function PayrollQuoteCalculator() {
           </div>
 
           {/* Quote Body */}
-          <div className="p-8">
+          <div className="p-8 flex flex-col quote-body">
+            <div className="flex-1">
             <table className="w-full mb-8">
               <thead>
                 <tr className="border-b-2 border-brand-navy text-left text-[10px] font-bold text-brand-navy uppercase tracking-widest">
@@ -532,6 +533,7 @@ export default function PayrollQuoteCalculator() {
                 </tr>
               </tfoot>
             </table>
+            </div>
 
             {/* Terms & Conditions */}
             <div className="mt-10 pt-6 border-t border-stone-100 text-xs text-slate-400">

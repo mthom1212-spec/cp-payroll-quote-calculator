@@ -91,16 +91,26 @@ body {
     print-color-adjust: exact !important;
   }
 
-  /* Compact pricing page header and body for print */
+  /* Pricing page fills full print page, T&C at bottom */
+  .print-page-fill {
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
   .quote-header {
     padding: 1rem 1.5rem !important;
+    flex-shrink: 0 !important;
   }
 
   .quote-header * {
     visibility: visible !important;
   }
 
-  .print-container .p-8 {
+  .quote-body {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
     padding: 1.25rem 1.5rem !important;
   }
 
