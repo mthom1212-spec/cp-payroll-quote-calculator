@@ -139,6 +139,8 @@ body {
 
   .print-services-compact .services-module-group {
     margin-bottom: 0.75rem !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .print-services-compact .services-module-title {
