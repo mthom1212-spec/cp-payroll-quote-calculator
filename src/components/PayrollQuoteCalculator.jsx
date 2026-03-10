@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PRICING_CONFIG, FREQUENCIES, formatMoney, formatDate } from '../constants/pricing';
+import { PRICING_CONFIG, FREQUENCIES, MODULE_SERVICES, formatMoney, formatDate } from '../constants/pricing';
 import { Icon } from './Icons';
 import Toggle from './Toggle';
 
@@ -13,7 +13,7 @@ export default function PayrollQuoteCalculator() {
   const [employeeCount, setEmployeeCount] = useState(15);
   const [frequency, setFrequency] = useState('biweekly');
   const [discountPercent, setDiscountPercent] = useState(0);
-  const [showAnnual, setShowAnnual] = useState(true);
+  const [clientFacing, setClientFacing] = useState(true);
 
   const [selectedModules, setSelectedModules] = useState({
     payroll: true,
@@ -227,13 +227,13 @@ export default function PayrollQuoteCalculator() {
 
                   <hr className="border-stone-100" />
 
-                  {/* Show Annual Toggle */}
+                  {/* Client Facing Toggle */}
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Show Annual Estimate</label>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Client Facing</label>
                     <Toggle
-                      checked={showAnnual}
-                      onChange={() => setShowAnnual(prev => !prev)}
-                      label="Toggle annual estimate visibility"
+                      checked={clientFacing}
+                      onChange={() => setClientFacing(prev => !prev)}
+                      label="Toggle client facing mode"
                     />
                   </div>
                 </div>
@@ -250,7 +250,7 @@ export default function PayrollQuoteCalculator() {
                       <span className="text-slate-500">Per payroll</span>
                       <span className="font-semibold text-brand-navy">{formatMoney(totals.finalPerPayroll)}</span>
                     </div>
-                    {showAnnual && (
+                    {!clientFacing && (
                       <div className="flex justify-between">
                         <span className="text-slate-500">Annual estimate</span>
                         <span className="font-semibold text-brand-navy">{formatMoney(totals.finalAnnual)}</span>
@@ -427,7 +427,7 @@ export default function PayrollQuoteCalculator() {
                 <tr className="border-b-2 border-brand-navy text-left text-[10px] font-bold text-brand-navy uppercase tracking-widest">
                   <th className="pb-3 pl-2">Service Module</th>
                   <th className="pb-3 text-right">Per Payroll</th>
-                  {showAnnual && <th className="pb-3 text-right">Annual Est.</th>}
+                  {!clientFacing &&<th className="pb-3 text-right">Annual Est.</th>}
                   <th className="pb-3 text-right pr-2">Setup Fee</th>
                 </tr>
               </thead>
@@ -457,7 +457,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-4 text-right font-semibold text-slate-700">
                         {formatMoney(costs.perPayroll)}
                       </td>
-                      {showAnnual && (
+                      {!clientFacing &&(
                         <td className="py-4 text-right text-slate-600">
                           {formatMoney(costs.annual)}
                         </td>
@@ -478,7 +478,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="pt-4 text-right font-semibold text-slate-400 text-sm">
                         {formatMoney(totals.subtotalPerPayroll)}
                       </td>
-                      {showAnnual && (
+                      {!clientFacing &&(
                         <td className="pt-4 text-right font-semibold text-slate-400 text-sm">
                           {formatMoney(totals.subtotalAnnual)}
                         </td>
@@ -493,7 +493,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-2 text-right font-semibold text-emerald-600 text-sm">
                         &minus; {formatMoney(totals.discountPerPayroll)}
                       </td>
-                      {showAnnual && (
+                      {!clientFacing &&(
                         <td className="py-2 text-right font-semibold text-emerald-600 text-sm">
                           &minus; {formatMoney(totals.discountAnnual)}
                         </td>
@@ -509,7 +509,7 @@ export default function PayrollQuoteCalculator() {
                   <td className="pt-4 pb-4 text-right font-bold text-brand-navy text-lg">
                     {formatMoney(totals.finalPerPayroll)}
                   </td>
-                  {showAnnual && (
+                  {!clientFacing &&(
                     <td className="pt-4 pb-4 text-right font-bold text-brand-navy">
                       {formatMoney(totals.finalAnnual)}
                     </td>
@@ -539,6 +539,70 @@ export default function PayrollQuoteCalculator() {
             </div>
           </div>
         </section>
+
+        {/* Page 2: Services Included (Client Facing Only) */}
+        {clientFacing && (
+          <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break">
+
+            {/* Services Header */}
+            <div className="bg-brand-navy text-white p-8">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold font-display tracking-tight">Creative Planning Payroll</h1>
+                  <div className="w-12 h-0.5 bg-brand-gold mt-2 mb-6"></div>
+                  <p className="opacity-70 text-xs uppercase tracking-widest">Services Included For</p>
+                  <h2 className="text-xl font-bold mt-1 font-display">
+                    {clientName || <span className="opacity-40 italic">[Client Name]</span>}
+                  </h2>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs opacity-70 uppercase tracking-wider">Date Issued</div>
+                  <div className="font-semibold text-lg mt-0.5">{formatDate(quoteDate)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Services Body */}
+            <div className="p-8">
+              <div className="space-y-8">
+                {Object.entries(MODULE_SERVICES).map(([key, moduleData]) => {
+                  if (!selectedModules[key]) return null;
+
+                  return (
+                    <div key={key}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-1 h-6 bg-brand-gold rounded-full"></div>
+                        <h3 className="text-lg font-bold text-brand-navy font-display">{moduleData.name}</h3>
+                      </div>
+                      <div className="ml-4">
+                        <ul className="grid grid-cols-1 gap-2">
+                          {moduleData.services.map((service, idx) => (
+                            <li key={idx} className="flex items-start gap-3 text-sm text-slate-700">
+                              <span className="text-brand-gold mt-0.5 flex-shrink-0">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </span>
+                              <span className="leading-relaxed">{service}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      {/* Divider between modules */}
+                      <div className="mt-6 border-b border-stone-100"></div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-8 pt-4 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300">
+                <span>Creative Planning Payroll &bull; Confidential</span>
+                <span>Generated {formatDate(quoteDate)}</span>
+              </div>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

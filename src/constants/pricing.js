@@ -67,6 +67,67 @@ export const FREQUENCIES = {
   monthly:     { label: 'Monthly',      periods: 12 },
 };
 
+// Services included with each module (for client-facing quotes)
+export const MODULE_SERVICES = {
+  payroll: {
+    name: 'Payroll Processing',
+    services: [
+      'Dedicated Payroll Specialist with support via phone, email or virtual meeting',
+      'Web-based/Mobile Software Access',
+      'Direct Deposit / ACH Management',
+      'Payroll Processing, Calculations for Earnings & Deductions',
+      'Federal & State Payroll Tax Collection & Remittance',
+      'Federal & State Payroll Tax Quarterly Filings (First state included, additional jurisdictions $10/ea per payroll)',
+      'Employee Self-Service (i.e. Access to pay statements, W2s, update withholding status)',
+      'Employee Documentation & Communication',
+      'Labor Law E-Update Poster Service (First location county & city notices)',
+      'Tax Tables Updates & Applied Jurisdiction Identification',
+      'Time Off Accrual Tracking',
+      'Automatic Email Notifications',
+      'Reports Module (Real-time reporting, customizable)',
+      'Email Report Generator',
+      'Personalized Dashboard with targeted tools',
+    ],
+  },
+  hcm: {
+    name: 'HCM Core',
+    services: [
+      'Paperless New Hire Onboarding',
+      'Employee Acknowledgements / Agreements',
+      'Custom Forms & Workflows',
+      'Degree Types, Credentials & Skills (i.e. Driver\'s License, Passport)',
+      'Checklists for Task Assignment',
+      'Training Tracking including Courses & Certification Management',
+      'Assigned Asset & Vehicle Tracking',
+      'HR Actions',
+      'Employee Documentation & Communication',
+      'Position & Job Management with Job Change Reason Codes',
+      'Benefits Administration (i.e. Online Self Enrollment, Life Change Events)',
+      'Compliance Support via Action Lists (i.e. Pay Change Reasons, Termination Reasons, etc)',
+      'Employee Directory / Organization Chart',
+      'Incident Tracking for Customized Events (i.e. Corrective actions, customer feedback, etc)',
+      'Pay Grades',
+      'Workers\' Claims',
+      'Paperless Employee Offboarding',
+    ],
+  },
+  tlm: {
+    name: 'Timekeeping',
+    services: [
+      'Attestation Module (i.e. Points, Attendance, etc.)',
+      'Job Costing & Labor Distribution',
+      'Employee Timecard Self-Service',
+      'Manager Timecard Self-Service',
+      'Basic Scheduling',
+      'Online Time Off Requests & Approvals',
+      'Custom Workflows (i.e. Time Off Requests, Timesheet Approvals, Timesheet Change Requests, Standard Overtime Requests, etc.)',
+      'Sick/Vacation Time Off Accrual Tracking',
+      'Auto-Populated Holidays',
+      'Custom Analytics',
+    ],
+  },
+};
+
 export const formatMoney = (amount) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
