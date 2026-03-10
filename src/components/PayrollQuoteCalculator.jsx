@@ -13,6 +13,7 @@ export default function PayrollQuoteCalculator() {
   const [employeeCount, setEmployeeCount] = useState(15);
   const [frequency, setFrequency] = useState('biweekly');
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [showAnnual, setShowAnnual] = useState(true);
 
   const [selectedModules, setSelectedModules] = useState({
     payroll: true,
@@ -223,6 +224,18 @@ export default function PayrollQuoteCalculator() {
                     />
                     <p className="text-[11px] text-slate-400 mt-1">Applies to recurring per-payroll fees only, not setup.</p>
                   </div>
+
+                  <hr className="border-stone-100" />
+
+                  {/* Show Annual Toggle */}
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Show Annual Estimate</label>
+                    <Toggle
+                      checked={showAnnual}
+                      onChange={() => setShowAnnual(prev => !prev)}
+                      label="Toggle annual estimate visibility"
+                    />
+                  </div>
                 </div>
 
                 {/* Quick Summary Card */}
@@ -237,10 +250,12 @@ export default function PayrollQuoteCalculator() {
                       <span className="text-slate-500">Per payroll</span>
                       <span className="font-semibold text-brand-navy">{formatMoney(totals.finalPerPayroll)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Annual estimate</span>
-                      <span className="font-semibold text-brand-navy">{formatMoney(totals.finalAnnual)}</span>
-                    </div>
+                    {showAnnual && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Annual estimate</span>
+                        <span className="font-semibold text-brand-navy">{formatMoney(totals.finalAnnual)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-500">One-time setup</span>
                       <span className="font-semibold text-brand-navy">{formatMoney(totals.totalSetup)}</span>
@@ -412,7 +427,7 @@ export default function PayrollQuoteCalculator() {
                 <tr className="border-b-2 border-brand-navy text-left text-[10px] font-bold text-brand-navy uppercase tracking-widest">
                   <th className="pb-3 pl-2">Service Module</th>
                   <th className="pb-3 text-right">Per Payroll</th>
-                  <th className="pb-3 text-right">Annual Est.</th>
+                  {showAnnual && <th className="pb-3 text-right">Annual Est.</th>}
                   <th className="pb-3 text-right pr-2">Setup Fee</th>
                 </tr>
               </thead>
@@ -442,9 +457,11 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-4 text-right font-semibold text-slate-700">
                         {formatMoney(costs.perPayroll)}
                       </td>
-                      <td className="py-4 text-right text-slate-600">
-                        {formatMoney(costs.annual)}
-                      </td>
+                      {showAnnual && (
+                        <td className="py-4 text-right text-slate-600">
+                          {formatMoney(costs.annual)}
+                        </td>
+                      )}
                       <td className="py-4 text-right text-slate-600 pr-2">
                         {costs.setup > 0 ? formatMoney(costs.setup) : '\u2014'}
                       </td>
@@ -461,9 +478,11 @@ export default function PayrollQuoteCalculator() {
                       <td className="pt-4 text-right font-semibold text-slate-400 text-sm">
                         {formatMoney(totals.subtotalPerPayroll)}
                       </td>
-                      <td className="pt-4 text-right font-semibold text-slate-400 text-sm">
-                        {formatMoney(totals.subtotalAnnual)}
-                      </td>
+                      {showAnnual && (
+                        <td className="pt-4 text-right font-semibold text-slate-400 text-sm">
+                          {formatMoney(totals.subtotalAnnual)}
+                        </td>
+                      )}
                       <td className="pt-4 pr-2 text-right text-slate-300 text-sm">{'\u2014'}</td>
                     </tr>
                     <tr className="border-b border-stone-200">
@@ -474,9 +493,11 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-2 text-right font-semibold text-emerald-600 text-sm">
                         &minus; {formatMoney(totals.discountPerPayroll)}
                       </td>
-                      <td className="py-2 text-right font-semibold text-emerald-600 text-sm">
-                        &minus; {formatMoney(totals.discountAnnual)}
-                      </td>
+                      {showAnnual && (
+                        <td className="py-2 text-right font-semibold text-emerald-600 text-sm">
+                          &minus; {formatMoney(totals.discountAnnual)}
+                        </td>
+                      )}
                       <td className="py-2 pr-2 text-right text-slate-300 text-sm">{'\u2014'}</td>
                     </tr>
                   </>
@@ -488,9 +509,11 @@ export default function PayrollQuoteCalculator() {
                   <td className="pt-4 pb-4 text-right font-bold text-brand-navy text-lg">
                     {formatMoney(totals.finalPerPayroll)}
                   </td>
-                  <td className="pt-4 pb-4 text-right font-bold text-brand-navy">
-                    {formatMoney(totals.finalAnnual)}
-                  </td>
+                  {showAnnual && (
+                    <td className="pt-4 pb-4 text-right font-bold text-brand-navy">
+                      {formatMoney(totals.finalAnnual)}
+                    </td>
+                  )}
                   <td className="pt-4 pb-4 pr-2 text-right font-bold text-brand-navy">
                     {formatMoney(totals.totalSetup)}
                   </td>
