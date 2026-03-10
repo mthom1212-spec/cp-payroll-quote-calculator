@@ -406,8 +406,8 @@ export default function PayrollQuoteCalculator() {
                 </div>
                 <div className="bg-[#00617f] px-4 py-3 rounded-lg text-left">
                   <div className="flex items-center gap-4">
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="text-center">
+                      <div className="flex items-center gap-1.5 mb-0.5 justify-center">
                         <Icon.Users className="w-3 h-3 text-white/70" />
                         <span className="text-[9px] uppercase tracking-wider text-white/70">Employees</span>
                       </div>
