@@ -443,6 +443,11 @@ export default function PayrollQuoteCalculator() {
                         <div className="text-[10px] text-slate-400 mt-0.5">
                           Rates: Base {formatMoney(costs.rates.base)} + {formatMoney(costs.rates.pepm)}/emp (Min {formatMoney(costs.rates.min)})
                         </div>
+                        {module.id === 'payroll' && (
+                          <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
+                            + New Hire Reporting: $3/New Hire
+                          </div>
+                        )}
                         {module.hasYearEnd && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
                             + {module.yearEndName}: {formatMoney(costs.yearEnd)}
@@ -525,7 +530,7 @@ export default function PayrollQuoteCalculator() {
             <div className="mt-10 pt-6 border-t border-stone-100 text-xs text-slate-400">
               <p className="mb-2 font-bold text-brand-navy text-[11px] uppercase tracking-wider">Pricing Terms &amp; Conditions</p>
               <p className="leading-relaxed">
-                This estimate is based on {employeeCount} employees processed {FREQUENCIES[frequency].label.toLowerCase()}.
+                This estimate is based on <span className="font-bold text-slate-600">{employeeCount} employees</span> processed <span className="font-bold text-slate-600">{FREQUENCIES[frequency].label.toLowerCase()}</span>.
                 Actual billing may vary based on fluctuations in employee count. Setup fees are one-time charges billed at onboarding.
                 Year-end processing fees (W-2, 1094-C/1095-C) are billed separately during their respective filing periods.
                 Prices are subject to change with 30 days written notice. This quote is valid for 30 days from the date of issue.
@@ -572,7 +577,10 @@ export default function PayrollQuoteCalculator() {
                     <div key={key} className="services-module-group">
                       <div className="flex items-center gap-3 mb-3 services-module-title">
                         <div className="w-1 h-5 bg-brand-gold rounded-full services-accent-bar"></div>
-                        <h3 className="text-base font-bold text-brand-navy font-display">{moduleData.name}</h3>
+                        <div>
+                          <h3 className="text-base font-bold text-brand-navy font-display">{moduleData.name}</h3>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mt-0.5">Services Included</p>
+                        </div>
                       </div>
                       <div className="ml-4">
                         <ul className="grid grid-cols-1 gap-1.5 services-list">
