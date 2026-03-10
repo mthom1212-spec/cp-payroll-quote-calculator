@@ -449,7 +449,10 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-4 pl-2">
                         <div className="font-bold text-slate-800">{module.name}</div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
-                          Rates: Base {formatMoney(costs.rates.base)} + {formatMoney(costs.rates.pepm)}/emp (Min {formatMoney(costs.rates.min)})
+                          {costs.rates.base > 0
+                            ? `Rates: Base ${formatMoney(costs.rates.base)} + ${formatMoney(costs.rates.pepm)}/emp (Min ${formatMoney(costs.rates.min)})`
+                            : `Rate: ${formatMoney(costs.rates.pepm)}/emp (Min ${formatMoney(costs.rates.min)})`
+                          }
                         </div>
                         {module.id === 'payroll' && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
