@@ -23,6 +23,8 @@ export default function PayrollQuoteCalculator() {
     fullService: false,
   });
 
+  const [payrollBaseOverride, setPayrollBaseOverride] = useState(null);
+
   const [setupFees, setSetupFees] = useState(() => {
     const initial = {};
     Object.entries(PRICING_CONFIG).forEach(([key, config]) => {
@@ -42,7 +44,9 @@ export default function PayrollQuoteCalculator() {
     const config = PRICING_CONFIG[moduleKey];
     const multiplier = getMultiplier();
 
-    const adjBase = config.baseFee * multiplier;
+    const adjBase = (moduleKey === 'payroll' && payrollBaseOverride !== null)
+      ? payrollBaseOverride
+      : config.baseFee * multiplier;
     const adjPepm = config.pepm * multiplier;
     const adjMin = config.minimum * multiplier;
 
@@ -93,7 +97,7 @@ export default function PayrollQuoteCalculator() {
       finalPerPayroll, finalAnnual,
       totalSetup, totalYearEnd,
     };
-  }, [selectedModules, employeeCount, frequency, discountPercent, setupFees]);
+  }, [selectedModules, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -366,6 +370,37 @@ export default function PayrollQuoteCalculator() {
                                 <div className="font-semibold text-slate-700">{formatMoney(costs.rates.min)}</div>
                               </div>
                             </div>
+
+                            {/* Payroll Base Rate Override */}
+                            {module.id === 'payroll' && (
+                              <div className="mt-2 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                <span className="text-[11px] text-amber-700 font-medium">Override Base Rate (per payroll)</span>
+                                <div className="flex items-center gap-2">
+                                  {payrollBaseOverride !== null && (
+                                    <button
+                                      onClick={() => setPayrollBaseOverride(null)}
+                                      className="text-[10px] text-amber-600 hover:text-amber-800 underline"
+                                    >
+                                      Reset
+                                    </button>
+                                  )}
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-amber-600 text-sm">$</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={payrollBaseOverride !== null ? payrollBaseOverride : (PRICING_CONFIG.payroll.baseFee * getMultiplier())}
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        setPayrollBaseOverride(isNaN(val) ? null : val);
+                                      }}
+                                      className="w-20 text-right text-sm border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Year-end line item */}
                             {module.hasYearEnd && (
