@@ -87,6 +87,8 @@ export const MODULE_SERVICES = {
       'Reports Module (Real-time reporting, customizable)',
       'Email Report Generator',
       'Personalized Dashboard with targeted tools',
+      'Job Costing and/or Labor Distribution Allocations',
+      'General Ledger Report (Generic/Custom)',
     ],
   },
   hcm: {
