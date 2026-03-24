@@ -130,46 +130,64 @@ export const MODULE_SERVICES = {
   },
 };
 
-// Ancillary (non-core) services — rates displayed as-is, not included in totals
-export const ANCILLARY_SERVICES = {
+// Ancillary services — per-employee/per-payroll (calculable like core modules)
+// Baseline pricing is Bi-Weekly (26 periods), adjusted for frequency.
+export const ANCILLARY_PRICING = {
   perfMgmt: {
     id: 'perfMgmt',
     name: 'Performance Management & Development',
-    rate: '$1 per active employee per payroll run',
-    setupFee: '$2,500',
+    baseFee: 0.00,
+    pepm: 1.00,
+    minimum: 0.00,
+    defaultSetup: 2500.00,
+    hasYearEnd: false,
   },
   ats: {
     id: 'ats',
     name: 'Recruiting / Applicant Tracking System (ATS)',
-    rate: '$1 per employee per payroll run',
-    setupFee: '$2,500',
+    baseFee: 0.00,
+    pepm: 1.00,
+    minimum: 0.00,
+    defaultSetup: 2500.00,
+    hasYearEnd: false,
     note: '$10/open job per month; $16 one-time per job for job board integration',
   },
   cobra: {
     id: 'cobra',
     name: 'COBRA Administration',
-    rate: '$0.50 per active employee per payroll',
-    setupFee: 'Up to $1,195',
-    note: '$40 minimum per payroll',
+    baseFee: 0.00,
+    pepm: 0.50,
+    minimum: 40.00,
+    defaultSetup: 1195.00,
+    hasYearEnd: false,
   },
+  retirement: {
+    id: 'retirement',
+    name: '360\u00b0 Integration \u2013 401(k)',
+    baseFee: 0.00,
+    pepm: 0.75,
+    minimum: 40.00,
+    defaultSetup: 1500.00,
+    hasYearEnd: false,
+  },
+  lms: {
+    id: 'lms',
+    name: 'Integrated LMS Portal',
+    baseFee: 0.00,
+    pepm: 2.00,
+    minimum: 0.00,
+    defaultSetup: 250.00,
+    hasYearEnd: false,
+  },
+};
+
+// Ancillary services — usage-based (informational only, not in totals)
+export const ANCILLARY_USAGE = {
   eVerify: {
     id: 'eVerify',
     name: 'E-Verify',
     rate: '$3.50 per new hire',
     setupFee: '$200',
-  },
-  retirement: {
-    id: 'retirement',
-    name: '360° Integration \u2013 401(k)',
-    rate: '$0.75 per active employee per payroll run',
-    setupFee: '$1,500',
-    note: '$40 minimum per payroll run',
-  },
-  lms: {
-    id: 'lms',
-    name: 'Integrated LMS Portal',
-    rate: '$2 per active employee per payroll run',
-    setupFee: '$250',
   },
 };
 

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PRICING_CONFIG, FREQUENCIES, MODULE_SERVICES, ANCILLARY_SERVICES, formatMoney, formatDate } from '../constants/pricing';
+import { PRICING_CONFIG, FREQUENCIES, MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, formatMoney, formatDate } from '../constants/pricing';
 import { Icon } from './Icons';
 import Toggle from './Toggle';
 
@@ -28,13 +28,17 @@ export default function PayrollQuoteCalculator() {
   const [showAncillary, setShowAncillary] = useState(false);
   const [selectedAncillary, setSelectedAncillary] = useState(() => {
     const initial = {};
-    Object.keys(ANCILLARY_SERVICES).forEach(key => { initial[key] = false; });
+    Object.keys(ANCILLARY_PRICING).forEach(key => { initial[key] = false; });
+    Object.keys(ANCILLARY_USAGE).forEach(key => { initial[key] = false; });
     return initial;
   });
 
   const [setupFees, setSetupFees] = useState(() => {
     const initial = {};
     Object.entries(PRICING_CONFIG).forEach(([key, config]) => {
+      initial[key] = { included: config.defaultSetup > 0, amount: config.defaultSetup };
+    });
+    Object.entries(ANCILLARY_PRICING).forEach(([key, config]) => {
       initial[key] = { included: config.defaultSetup > 0, amount: config.defaultSetup };
     });
     return initial;
@@ -47,8 +51,8 @@ export default function PayrollQuoteCalculator() {
     return basePeriods / targetPeriods;
   };
 
-  const calculateModuleCost = (moduleKey) => {
-    const config = PRICING_CONFIG[moduleKey];
+  const calculateModuleCost = (moduleKey, configSource = PRICING_CONFIG) => {
+    const config = configSource[moduleKey];
     const multiplier = getMultiplier();
 
     const adjBase = (moduleKey === 'payroll' && payrollBaseOverride !== null)
@@ -67,7 +71,7 @@ export default function PayrollQuoteCalculator() {
     }
 
     const annual = (perPayroll * FREQUENCIES[frequency].periods) + yearEnd;
-    const setup = setupFees[moduleKey].included
+    const setup = setupFees[moduleKey]?.included
       ? parseFloat(setupFees[moduleKey].amount || 0)
       : 0;
 
@@ -127,7 +131,9 @@ export default function PayrollQuoteCalculator() {
   const toggleAncillary = (key) =>
     setSelectedAncillary(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const activeAncillaryCount = Object.values(selectedAncillary).filter(Boolean).length;
+  const activeAncillaryPricingCount = Object.keys(ANCILLARY_PRICING).filter(k => selectedAncillary[k]).length;
+  const activeAncillaryUsageCount = Object.keys(ANCILLARY_USAGE).filter(k => selectedAncillary[k]).length;
+  const activeAncillaryCount = activeAncillaryPricingCount + activeAncillaryUsageCount;
 
   // --- Render ---
   return (
@@ -267,20 +273,62 @@ export default function PayrollQuoteCalculator() {
                     </div>
                     {showAncillary && (
                       <div className="mt-3 space-y-2">
-                        {Object.values(ANCILLARY_SERVICES).map((svc) => (
-                          <label key={svc.id} className="flex items-start gap-2 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              checked={selectedAncillary[svc.id]}
-                              onChange={() => toggleAncillary(svc.id)}
-                              className="w-4 h-4 rounded mt-0.5 cursor-pointer"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
-                              <span className="block text-[10px] text-slate-400">{svc.rate}</span>
-                            </div>
-                          </label>
+                        {Object.values(ANCILLARY_PRICING).map((svc) => (
+                          <div key={svc.id}>
+                            <label className="flex items-start gap-2 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={selectedAncillary[svc.id]}
+                                onChange={() => toggleAncillary(svc.id)}
+                                className="w-4 h-4 rounded mt-0.5 cursor-pointer"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
+                                <span className="block text-[10px] text-slate-400">{formatMoney(svc.pepm)}/emp per payroll{svc.minimum > 0 ? ` (Min ${formatMoney(svc.minimum)})` : ''}</span>
+                              </div>
+                            </label>
+                            {selectedAncillary[svc.id] && (
+                              <div className="ml-6 mt-1 flex items-center gap-2 text-[10px]">
+                                <label className="text-slate-400 font-semibold uppercase tracking-wider">Setup</label>
+                                <Toggle
+                                  checked={setupFees[svc.id]?.included || false}
+                                  onChange={() => toggleSetup(svc.id)}
+                                  label={`Toggle setup fee for ${svc.name}`}
+                                />
+                                {setupFees[svc.id]?.included ? (
+                                  <div className="flex items-center gap-0.5">
+                                    <span className="text-slate-400">$</span>
+                                    <input
+                                      type="number"
+                                      value={setupFees[svc.id]?.amount || 0}
+                                      onChange={(e) => updateSetupAmount(svc.id, e.target.value)}
+                                      className="w-16 text-right text-xs border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 italic">Waived</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         ))}
+                        <div className="pt-1 border-t border-stone-100">
+                          <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold mb-1.5">Usage-Based (when incurred)</p>
+                          {Object.values(ANCILLARY_USAGE).map((svc) => (
+                            <label key={svc.id} className="flex items-start gap-2 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={selectedAncillary[svc.id]}
+                                onChange={() => toggleAncillary(svc.id)}
+                                className="w-4 h-4 rounded mt-0.5 cursor-pointer"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
+                                <span className="block text-[10px] text-slate-400">{svc.rate}</span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -617,32 +665,74 @@ export default function PayrollQuoteCalculator() {
             </table>
             </div>
 
-            {/* Additional Services (if any selected) */}
-            {activeAncillaryCount > 0 && (
+            {/* Ancillary Services — Calculated (per-employee per-payroll) */}
+            {activeAncillaryPricingCount > 0 && (
               <div className="mt-6 pt-5 border-t border-stone-200">
-                <p className="text-[10px] font-bold text-brand-navy uppercase tracking-widest mb-3">Additional Services</p>
-                <p className="text-[10px] text-slate-400 mb-3 italic">Rates incurred when utilized — not included in totals above.</p>
+                <p className="text-[10px] font-bold text-brand-navy uppercase tracking-widest mb-3">Ancillary Services</p>
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-stone-200 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                       <th className="pb-2 pl-2">Service</th>
-                      <th className="pb-2 text-right">Rate</th>
+                      <th className="pb-2 text-right">Per Payroll</th>
+                      {!clientFacing && <th className="pb-2 text-right">Annual Est.</th>}
                       <th className="pb-2 text-right pr-2">Setup Fee</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-50">
-                    {Object.values(ANCILLARY_SERVICES).map((svc) => {
+                    {Object.values(ANCILLARY_PRICING).map((svc) => {
                       if (!selectedAncillary[svc.id]) return null;
+                      const costs = calculateModuleCost(svc.id, ANCILLARY_PRICING);
                       return (
                         <tr key={svc.id} className="text-xs">
                           <td className="py-2.5 pl-2">
                             <div className="font-semibold text-slate-700">{svc.name}</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {`Rate: ${formatMoney(costs.rates.pepm)}/emp`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}
+                            </div>
                             {svc.note && (
                               <div className="text-[9px] text-slate-400 mt-0.5">{svc.note}</div>
                             )}
+                            {costs.isMinApplied && (
+                              <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
+                                ★ Minimum Applied
+                              </span>
+                            )}
                           </td>
-                          <td className="py-2.5 text-right text-slate-600 whitespace-nowrap">{svc.rate}</td>
-                          <td className="py-2.5 text-right text-slate-600 pr-2 whitespace-nowrap">{svc.setupFee}</td>
+                          <td className="py-2.5 text-right font-semibold text-slate-700 whitespace-nowrap">
+                            {formatMoney(costs.perPayroll)}
+                          </td>
+                          {!clientFacing && (
+                            <td className="py-2.5 text-right text-slate-600 whitespace-nowrap">
+                              {formatMoney(costs.annual)}
+                            </td>
+                          )}
+                          <td className="py-2.5 text-right text-slate-600 pr-2 whitespace-nowrap">
+                            {costs.setup > 0 ? formatMoney(costs.setup) : '\u2014'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Usage-Based Services (informational only) */}
+            {activeAncillaryUsageCount > 0 && (
+              <div className={`${activeAncillaryPricingCount > 0 ? 'mt-4' : 'mt-6'} pt-4 border-t border-stone-100`}>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Additional Usage-Based Services</p>
+                <p className="text-[9px] text-slate-400 mb-2 italic">Fees incurred when utilized — not included in totals above.</p>
+                <table className="w-full">
+                  <tbody className="divide-y divide-stone-50">
+                    {Object.values(ANCILLARY_USAGE).map((svc) => {
+                      if (!selectedAncillary[svc.id]) return null;
+                      return (
+                        <tr key={svc.id} className="text-xs">
+                          <td className="py-2 pl-2">
+                            <div className="font-semibold text-slate-700">{svc.name}</div>
+                          </td>
+                          <td className="py-2 text-right text-slate-600 whitespace-nowrap">{svc.rate}</td>
+                          <td className="py-2 text-right text-slate-600 pr-2 whitespace-nowrap">{svc.setupFee}</td>
                         </tr>
                       );
                     })}
