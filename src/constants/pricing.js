@@ -130,6 +130,49 @@ export const MODULE_SERVICES = {
   },
 };
 
+// Ancillary (non-core) services — rates displayed as-is, not included in totals
+export const ANCILLARY_SERVICES = {
+  perfMgmt: {
+    id: 'perfMgmt',
+    name: 'Performance Management & Development',
+    rate: '$1 per active employee per payroll run',
+    setupFee: '$2,500',
+  },
+  ats: {
+    id: 'ats',
+    name: 'Recruiting / Applicant Tracking System (ATS)',
+    rate: '$1 per employee per payroll run',
+    setupFee: '$2,500',
+    note: '$10/open job per month; $16 one-time per job for job board integration',
+  },
+  cobra: {
+    id: 'cobra',
+    name: 'COBRA Administration',
+    rate: '$0.50 per active employee per payroll',
+    setupFee: 'Up to $1,195',
+    note: '$40 minimum per payroll',
+  },
+  eVerify: {
+    id: 'eVerify',
+    name: 'E-Verify',
+    rate: '$3.50 per new hire',
+    setupFee: '$200',
+  },
+  retirement: {
+    id: 'retirement',
+    name: '360° Integration \u2013 401(k)',
+    rate: '$0.75 per active employee per payroll run',
+    setupFee: '$1,500',
+    note: '$40 minimum per payroll run',
+  },
+  lms: {
+    id: 'lms',
+    name: 'Integrated LMS Portal',
+    rate: '$2 per active employee per payroll run',
+    setupFee: '$250',
+  },
+};
+
 export const formatMoney = (amount) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 

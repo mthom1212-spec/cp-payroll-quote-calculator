@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PRICING_CONFIG, FREQUENCIES, MODULE_SERVICES, formatMoney, formatDate } from '../constants/pricing';
+import { PRICING_CONFIG, FREQUENCIES, MODULE_SERVICES, ANCILLARY_SERVICES, formatMoney, formatDate } from '../constants/pricing';
 import { Icon } from './Icons';
 import Toggle from './Toggle';
 
@@ -24,6 +24,13 @@ export default function PayrollQuoteCalculator() {
   });
 
   const [payrollBaseOverride, setPayrollBaseOverride] = useState(null);
+
+  const [showAncillary, setShowAncillary] = useState(false);
+  const [selectedAncillary, setSelectedAncillary] = useState(() => {
+    const initial = {};
+    Object.keys(ANCILLARY_SERVICES).forEach(key => { initial[key] = false; });
+    return initial;
+  });
 
   const [setupFees, setSetupFees] = useState(() => {
     const initial = {};
@@ -116,6 +123,11 @@ export default function PayrollQuoteCalculator() {
       ...prev,
       [key]: { ...prev[key], amount: val },
     }));
+
+  const toggleAncillary = (key) =>
+    setSelectedAncillary(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const activeAncillaryCount = Object.values(selectedAncillary).filter(Boolean).length;
 
   // --- Render ---
   return (
@@ -239,6 +251,38 @@ export default function PayrollQuoteCalculator() {
                       onChange={() => setClientFacing(prev => !prev)}
                       label="Toggle client facing mode"
                     />
+                  </div>
+
+                  <hr className="border-stone-100" />
+
+                  {/* Ancillary Services Toggle */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ancillary Services</label>
+                      <Toggle
+                        checked={showAncillary}
+                        onChange={() => setShowAncillary(prev => !prev)}
+                        label="Toggle ancillary services"
+                      />
+                    </div>
+                    {showAncillary && (
+                      <div className="mt-3 space-y-2">
+                        {Object.values(ANCILLARY_SERVICES).map((svc) => (
+                          <label key={svc.id} className="flex items-start gap-2 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={selectedAncillary[svc.id]}
+                              onChange={() => toggleAncillary(svc.id)}
+                              className="w-4 h-4 rounded mt-0.5 cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
+                              <span className="block text-[10px] text-slate-400">{svc.rate}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -572,6 +616,40 @@ export default function PayrollQuoteCalculator() {
               </tfoot>
             </table>
             </div>
+
+            {/* Additional Services (if any selected) */}
+            {activeAncillaryCount > 0 && (
+              <div className="mt-6 pt-5 border-t border-stone-200">
+                <p className="text-[10px] font-bold text-brand-navy uppercase tracking-widest mb-3">Additional Services</p>
+                <p className="text-[10px] text-slate-400 mb-3 italic">Rates incurred when utilized — not included in totals above.</p>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-stone-200 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      <th className="pb-2 pl-2">Service</th>
+                      <th className="pb-2 text-right">Rate</th>
+                      <th className="pb-2 text-right pr-2">Setup Fee</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-50">
+                    {Object.values(ANCILLARY_SERVICES).map((svc) => {
+                      if (!selectedAncillary[svc.id]) return null;
+                      return (
+                        <tr key={svc.id} className="text-xs">
+                          <td className="py-2.5 pl-2">
+                            <div className="font-semibold text-slate-700">{svc.name}</div>
+                            {svc.note && (
+                              <div className="text-[9px] text-slate-400 mt-0.5">{svc.note}</div>
+                            )}
+                          </td>
+                          <td className="py-2.5 text-right text-slate-600 whitespace-nowrap">{svc.rate}</td>
+                          <td className="py-2.5 text-right text-slate-600 pr-2 whitespace-nowrap">{svc.setupFee}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Terms & Conditions */}
             <div className="mt-10 pt-6 border-t border-stone-100 text-xs text-slate-400">
