@@ -782,8 +782,9 @@ export default function PayrollQuoteCalculator() {
             <div className="p-8 print-services-compact">
               <div className="space-y-6">
                 {Object.entries(MODULE_SERVICES).map(([key, moduleData]) => {
-                  if (!selectedModules[key]) return null;
-                  const activeServiceModules = Object.keys(MODULE_SERVICES).filter(k => selectedModules[k]);
+                  const isSelected = selectedModules[key] || selectedAncillary[key];
+                  if (!isSelected) return null;
+                  const activeServiceModules = Object.keys(MODULE_SERVICES).filter(k => selectedModules[k] || selectedAncillary[k]);
                   const useColumns = activeServiceModules.length === 1;
 
                   return (

@@ -128,6 +128,41 @@ export const MODULE_SERVICES = {
       'Custom Analytics',
     ],
   },
+  perfMgmt: {
+    name: 'Performance Management & Development',
+    services: [
+      'Custom performance reviews, ratings, and feedback forms',
+      'Goal, competency, and core value libraries',
+      'Peer and continuous feedback',
+      'Focal, annual, and 30/60/90-day reviews',
+      'Unlimited nine-box matrices, succession slates, and talent pools',
+      'Gap analysis and scenario planning',
+      'Flexible workflows and approvals',
+      'Multiple manager reviews',
+      'Real-time reporting and analytics',
+    ],
+  },
+  ats: {
+    name: 'Recruiting / Applicant Tracking System',
+    services: [
+      'Employer Branded Career site',
+      'Centralized recruiting workspace for common activities',
+      'Job requisition tool for building internal and external listings',
+      'Connections to popular job boards like Indeed',
+      'Flexible online application forms',
+      'Pre-screening and knockout questions to filter applicants',
+      'Quick apply options for high-volume or high-turnover roles',
+      'Resume parsing',
+      'Rehire options for returning employees',
+      'Applicant tracking, notifications, and hiring team organization tools',
+      'Built-in communication tools configurable to your brand',
+      'Applicant Self-Service (i.e. tracking application completion, applying for multiple positions, and status updates on any device)',
+      'Sentiment analysis options to understand interviewer feedback',
+      'Recruiting Insights (i.e. common locations applied from, cost and time to hire metrics, top recruiting channels, and turnover rates)',
+      'Applicant Two-way Text Messaging Capability (additional fees apply)',
+      'Background screening and WOTC integrations (additional fees apply)',
+    ],
+  },
 };
 
 // Ancillary services — per-employee/per-payroll (calculable like core modules)
