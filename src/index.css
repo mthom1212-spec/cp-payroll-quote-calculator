@@ -91,15 +91,15 @@ body {
     print-color-adjust: exact !important;
   }
 
-  /* Pricing page fills full print page, T&C at bottom */
+  /* Pricing page: pin T&C to bottom when short, flow naturally when long */
   .print-page-fill {
-    height: 100vh !important;
+    min-height: 100vh !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
   .quote-header {
-    padding: 1rem 1.5rem !important;
+    padding: 0.75rem 1.5rem !important;
     flex-shrink: 0 !important;
   }
 
@@ -111,21 +111,55 @@ body {
     flex: 1 !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 1.25rem 1.5rem !important;
+    padding: 1rem 1.5rem !important;
   }
 
   .print-container table {
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.5rem !important;
   }
 
   .print-container tbody td {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
   }
 
   .print-container tfoot td {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  /* Compact text sizing for pricing table in print */
+  .print-container tbody td .text-sm,
+  .print-container tbody td {
+    font-size: 0.8rem !important;
+  }
+
+  .print-container tbody td .text-\[10px\],
+  .print-container tbody td .text-\[9px\] {
+    font-size: 0.55rem !important;
+  }
+
+  .print-container tfoot td {
+    font-size: 0.8rem !important;
+  }
+
+  /* Keep T&C and footer compact in print */
+  .print-tc {
+    margin-top: 0.5rem !important;
     padding-top: 0.35rem !important;
-    padding-bottom: 0.35rem !important;
+    font-size: 0.6rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .print-tc p:first-of-type {
+    font-size: 0.55rem !important;
+    margin-bottom: 0.15rem !important;
+  }
+
+  .print-footer {
+    margin-top: 0.35rem !important;
+    padding-top: 0.25rem !important;
+    font-size: 0.55rem !important;
   }
 
   /* Compact services page to fit on one printed page */

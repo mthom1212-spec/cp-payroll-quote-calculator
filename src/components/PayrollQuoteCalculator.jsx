@@ -738,8 +738,8 @@ export default function PayrollQuoteCalculator() {
             )}
 
             {/* Terms & Conditions */}
-            <div className="mt-10 pt-6 border-t border-stone-100 text-xs text-slate-400">
-              <p className="mb-2 font-bold text-brand-navy text-[11px] uppercase tracking-wider">Pricing Terms &amp; Conditions</p>
+            <div className="mt-6 pt-4 border-t border-stone-100 text-xs text-slate-400 print-tc">
+              <p className="mb-1.5 font-bold text-brand-navy text-[11px] uppercase tracking-wider">Pricing Terms &amp; Conditions</p>
               <p className="leading-relaxed">
                 This estimate is based on <span className="font-bold text-slate-600">{employeeCount} employees</span> processed <span className="font-bold text-slate-600">{FREQUENCIES[frequency].label.toLowerCase()}</span>.
                 Actual billing may vary based on fluctuations in employee count. Setup fees are one-time charges billed at onboarding.
@@ -749,7 +749,7 @@ export default function PayrollQuoteCalculator() {
             </div>
 
             {/* Footer */}
-            <div className="mt-8 pt-4 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300">
+            <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300 print-footer">
               <span>Creative Planning Payroll &bull; Confidential</span>
               <span>Generated {formatDate(quoteDate)}</span>
             </div>
