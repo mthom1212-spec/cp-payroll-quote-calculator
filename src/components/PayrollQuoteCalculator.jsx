@@ -97,6 +97,15 @@ export default function PayrollQuoteCalculator() {
       }
     });
 
+    Object.keys(ANCILLARY_PRICING).forEach(key => {
+      if (selectedAncillary[key]) {
+        const c = calculateModuleCost(key, ANCILLARY_PRICING);
+        subtotalPerPayroll += c.perPayroll;
+        subtotalAnnual += c.annual;
+        totalSetup += c.setup;
+      }
+    });
+
     const discountPerPayroll = subtotalPerPayroll * (discountPercent / 100);
     const finalPerPayroll = subtotalPerPayroll - discountPerPayroll;
     const discountAnnual = discountPerPayroll * FREQUENCIES[frequency].periods;
@@ -108,7 +117,7 @@ export default function PayrollQuoteCalculator() {
       finalPerPayroll, finalAnnual,
       totalSetup, totalYearEnd,
     };
-  }, [selectedModules, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride]);
+  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -611,6 +620,48 @@ export default function PayrollQuoteCalculator() {
                     </tr>
                   );
                 })}
+
+                {/* Ancillary per-payroll services (included in totals) */}
+                {activeAncillaryPricingCount > 0 && (
+                  <tr>
+                    <td colSpan={clientFacing ? 3 : 4} className="pt-4 pb-1 pl-2">
+                      <span className="text-[9px] font-bold text-brand-navy/60 uppercase tracking-widest">Ancillary Services</span>
+                    </td>
+                  </tr>
+                )}
+                {Object.values(ANCILLARY_PRICING).map((svc) => {
+                  if (!selectedAncillary[svc.id]) return null;
+                  const costs = calculateModuleCost(svc.id, ANCILLARY_PRICING);
+                  return (
+                    <tr key={svc.id} className="text-sm">
+                      <td className="py-3 pl-2">
+                        <div className="font-bold text-slate-800">{svc.name}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {`Rate: ${formatMoney(costs.rates.pepm)}/emp`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}
+                        </div>
+                        {svc.note && (
+                          <div className="text-[9px] text-slate-400 mt-0.5">{svc.note}</div>
+                        )}
+                        {costs.isMinApplied && (
+                          <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
+                            ★ Minimum Applied
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 text-right font-semibold text-slate-700">
+                        {formatMoney(costs.perPayroll)}
+                      </td>
+                      {!clientFacing && (
+                        <td className="py-3 text-right text-slate-600">
+                          {formatMoney(costs.annual)}
+                        </td>
+                      )}
+                      <td className="py-3 text-right text-slate-600 pr-2">
+                        {costs.setup > 0 ? formatMoney(costs.setup) : '\u2014'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot className="border-t-2 border-brand-navy">
                 {/* Discount rows */}
@@ -665,61 +716,9 @@ export default function PayrollQuoteCalculator() {
             </table>
             </div>
 
-            {/* Ancillary Services — Calculated (per-employee per-payroll) */}
-            {activeAncillaryPricingCount > 0 && (
-              <div className="mt-6 pt-5 border-t border-stone-200">
-                <p className="text-[10px] font-bold text-brand-navy uppercase tracking-widest mb-3">Ancillary Services</p>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-stone-200 text-left text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                      <th className="pb-2 pl-2">Service</th>
-                      <th className="pb-2 text-right">Per Payroll</th>
-                      {!clientFacing && <th className="pb-2 text-right">Annual Est.</th>}
-                      <th className="pb-2 text-right pr-2">Setup Fee</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-50">
-                    {Object.values(ANCILLARY_PRICING).map((svc) => {
-                      if (!selectedAncillary[svc.id]) return null;
-                      const costs = calculateModuleCost(svc.id, ANCILLARY_PRICING);
-                      return (
-                        <tr key={svc.id} className="text-xs">
-                          <td className="py-2.5 pl-2">
-                            <div className="font-semibold text-slate-700">{svc.name}</div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
-                              {`Rate: ${formatMoney(costs.rates.pepm)}/emp`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}
-                            </div>
-                            {svc.note && (
-                              <div className="text-[9px] text-slate-400 mt-0.5">{svc.note}</div>
-                            )}
-                            {costs.isMinApplied && (
-                              <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
-                                ★ Minimum Applied
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-2.5 text-right font-semibold text-slate-700 whitespace-nowrap">
-                            {formatMoney(costs.perPayroll)}
-                          </td>
-                          {!clientFacing && (
-                            <td className="py-2.5 text-right text-slate-600 whitespace-nowrap">
-                              {formatMoney(costs.annual)}
-                            </td>
-                          )}
-                          <td className="py-2.5 text-right text-slate-600 pr-2 whitespace-nowrap">
-                            {costs.setup > 0 ? formatMoney(costs.setup) : '\u2014'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
             {/* Usage-Based Services (informational only) */}
             {activeAncillaryUsageCount > 0 && (
-              <div className={`${activeAncillaryPricingCount > 0 ? 'mt-4' : 'mt-6'} pt-4 border-t border-stone-100`}>
+              <div className="mt-6 pt-4 border-t border-stone-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Additional Usage-Based Services</p>
                 <p className="text-[9px] text-slate-400 mb-2 italic">Fees incurred when utilized — not included in totals above.</p>
                 <table className="w-full">
