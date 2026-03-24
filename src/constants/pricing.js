@@ -150,7 +150,6 @@ export const ANCILLARY_PRICING = {
     minimum: 0.00,
     defaultSetup: 2500.00,
     hasYearEnd: false,
-    note: '$10/open job per month; $16 one-time per job for job board integration',
   },
   cobra: {
     id: 'cobra',
@@ -183,6 +182,11 @@ export const ANCILLARY_PRICING = {
 
 // Ancillary services — usage-based (informational only, not in totals)
 export const ANCILLARY_USAGE = {
+  atsJobPosting: {
+    id: 'atsJobPosting',
+    name: 'Recruiting Job Board Posting',
+    rate: '$10/open job posting per month; $16 one-time per job requisition for job board integration',
+  },
   eVerify: {
     id: 'eVerify',
     name: 'E-Verify',

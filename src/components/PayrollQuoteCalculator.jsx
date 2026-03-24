@@ -639,9 +639,6 @@ export default function PayrollQuoteCalculator() {
                         <div className="text-[10px] text-slate-400 mt-0.5">
                           {`Rate: ${formatMoney(costs.rates.pepm)}/emp`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}
                         </div>
-                        {svc.note && (
-                          <div className="text-[9px] text-slate-400 mt-0.5">{svc.note}</div>
-                        )}
                         {costs.isMinApplied && (
                           <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
                             ★ Minimum Applied
