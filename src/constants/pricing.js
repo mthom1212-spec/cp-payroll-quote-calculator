@@ -220,13 +220,18 @@ export const ANCILLARY_USAGE = {
   atsJobPosting: {
     id: 'atsJobPosting',
     name: 'Recruiting Job Board Posting',
-    rate: '$10/open job posting per month; $16 one-time per job requisition for job board integration',
+    rates: [
+      '$10 per open job posting per month',
+      '$16 one-time per job requisition posted for job board integration',
+    ],
   },
   eVerify: {
     id: 'eVerify',
     name: 'E-Verify',
-    rate: '$3.50 per new hire',
-    setupFee: '$200',
+    rates: [
+      '$3.50 per new hire',
+      '$200 one-time setup fee',
+    ],
   },
 };
 

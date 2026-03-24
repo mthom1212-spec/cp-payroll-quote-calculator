@@ -333,7 +333,9 @@ export default function PayrollQuoteCalculator() {
                               />
                               <div className="flex-1 min-w-0">
                                 <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
-                                <span className="block text-[10px] text-slate-400">{svc.rate}</span>
+                                {svc.rates.map((r, i) => (
+                                  <span key={i} className="block text-[10px] text-slate-400">{r}</span>
+                                ))}
                               </div>
                             </label>
                           ))}
@@ -729,8 +731,11 @@ export default function PayrollQuoteCalculator() {
                             <td className="py-2 pl-2">
                               <div className="font-semibold text-slate-700">{svc.name}</div>
                             </td>
-                            <td className="py-2 text-right text-slate-600 whitespace-nowrap">{svc.rate}</td>
-                            <td className="py-2 text-right text-slate-600 pr-2 whitespace-nowrap">{svc.setupFee}</td>
+                            <td className="py-2 text-right text-slate-600 pr-2" colSpan={2}>
+                              {svc.rates.map((r, i) => (
+                                <div key={i} className="whitespace-nowrap">{r}</div>
+                              ))}
+                            </td>
                           </tr>
                         );
                       })}
