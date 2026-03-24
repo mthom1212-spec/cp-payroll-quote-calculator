@@ -15,6 +15,11 @@ export default function PayrollQuoteCalculator() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [clientFacing, setClientFacing] = useState(true);
 
+  const [showRepInfo, setShowRepInfo] = useState(false);
+  const [repName, setRepName] = useState('');
+  const [repPhone, setRepPhone] = useState('');
+  const [repEmail, setRepEmail] = useState('');
+
   const [selectedModules, setSelectedModules] = useState({
     payroll: true,
     tlm: false,
@@ -266,6 +271,45 @@ export default function PayrollQuoteCalculator() {
                       onChange={() => setClientFacing(prev => !prev)}
                       label="Toggle client facing mode"
                     />
+                  </div>
+
+                  <hr className="border-stone-100" />
+
+                  {/* Sales Rep Contact Info */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rep Contact Info</label>
+                      <Toggle
+                        checked={showRepInfo}
+                        onChange={() => setShowRepInfo(prev => !prev)}
+                        label="Toggle rep contact info"
+                      />
+                    </div>
+                    {showRepInfo && (
+                      <div className="mt-3 space-y-2.5">
+                        <input
+                          type="text"
+                          value={repName}
+                          onChange={(e) => setRepName(e.target.value)}
+                          placeholder="Name"
+                          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                        />
+                        <input
+                          type="tel"
+                          value={repPhone}
+                          onChange={(e) => setRepPhone(e.target.value)}
+                          placeholder="Phone number"
+                          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                        />
+                        <input
+                          type="email"
+                          value={repEmail}
+                          onChange={(e) => setRepEmail(e.target.value)}
+                          placeholder="Email address"
+                          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <hr className="border-stone-100" />
@@ -835,6 +879,13 @@ export default function PayrollQuoteCalculator() {
                     <p className="text-xs text-slate-500 mt-1.5 leading-relaxed max-w-md mx-auto">
                       Contact your Creative Planning Payroll representative to discuss your customized solution and begin onboarding.
                     </p>
+                    {showRepInfo && (repName || repPhone || repEmail) && (
+                      <div className="mt-3 space-y-0.5">
+                        {repName && <p className="text-sm font-bold text-brand-gold">{repName}</p>}
+                        {repPhone && <p className="text-xs font-semibold text-brand-gold">{repPhone}</p>}
+                        {repEmail && <p className="text-xs font-semibold text-brand-gold">{repEmail}</p>}
+                      </div>
+                    )}
                   </div>
                 </div>
 
