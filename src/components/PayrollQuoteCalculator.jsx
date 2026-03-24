@@ -713,45 +713,51 @@ export default function PayrollQuoteCalculator() {
             </table>
             </div>
 
-            {/* Usage-Based Services (informational only) */}
-            {activeAncillaryUsageCount > 0 && (
-              <div className="mt-6 pt-4 border-t border-stone-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Additional Usage-Based Services</p>
-                <p className="text-[9px] text-slate-400 mb-2 italic">Fees incurred when utilized — not included in totals above.</p>
-                <table className="w-full">
-                  <tbody className="divide-y divide-stone-50">
-                    {Object.values(ANCILLARY_USAGE).map((svc) => {
-                      if (!selectedAncillary[svc.id]) return null;
-                      return (
-                        <tr key={svc.id} className="text-xs">
-                          <td className="py-2 pl-2">
-                            <div className="font-semibold text-slate-700">{svc.name}</div>
-                          </td>
-                          <td className="py-2 text-right text-slate-600 whitespace-nowrap">{svc.rate}</td>
-                          <td className="py-2 text-right text-slate-600 pr-2 whitespace-nowrap">{svc.setupFee}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            {/* Usage-based, T&C, and footer kept together in print */}
+            <div className="print-keep-together">
+              {/* Usage-Based Services (informational only) */}
+              {activeAncillaryUsageCount > 0 && (
+                <div className="mt-6 pt-4 border-t border-stone-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Additional Usage-Based Services</p>
+                  <p className="text-[9px] text-slate-400 mb-2 italic">Fees incurred when utilized — not included in totals above.</p>
+                  <table className="w-full">
+                    <tbody className="divide-y divide-stone-50">
+                      {Object.values(ANCILLARY_USAGE).map((svc) => {
+                        if (!selectedAncillary[svc.id]) return null;
+                        return (
+                          <tr key={svc.id} className="text-xs">
+                            <td className="py-2 pl-2">
+                              <div className="font-semibold text-slate-700">{svc.name}</div>
+                            </td>
+                            <td className="py-2 text-right text-slate-600 whitespace-nowrap">{svc.rate}</td>
+                            <td className="py-2 text-right text-slate-600 pr-2 whitespace-nowrap">{svc.setupFee}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Terms & Conditions */}
+              <div className="mt-6 pt-4 border-t border-stone-100 text-xs text-slate-400 print-tc">
+                <p className="mb-1.5 font-bold text-brand-navy text-[11px] uppercase tracking-wider">Pricing Terms &amp; Conditions</p>
+                <p className="leading-relaxed">
+                  This estimate is based on <span className="font-bold text-slate-600">{employeeCount} employees</span> processed <span className="font-bold text-slate-600">{FREQUENCIES[frequency].label.toLowerCase()}</span>.
+                  Actual billing may vary based on fluctuations in employee count. Setup fees are one-time charges billed at onboarding.
+                  Year-end processing fees (W-2, 1094-C/1095-C) are billed separately during their respective filing periods.
+                  Prices are subject to change with 30 days written notice. This quote is valid for 30 days from the date of issue.
+                </p>
+                <p className="leading-relaxed mt-2">
+                  <span className="font-bold text-slate-600">Employee Pricing Notice:</span> Per-employee fees per payroll are based on all active employees in the payroll platform, which may differ from the number of employees paid in a given pay period. Active employees who are on leave, have $0 payrolls, or are otherwise not included in a specific payroll run may still be counted toward per-employee billing.
+                </p>
               </div>
-            )}
 
-            {/* Terms & Conditions */}
-            <div className="mt-6 pt-4 border-t border-stone-100 text-xs text-slate-400 print-tc">
-              <p className="mb-1.5 font-bold text-brand-navy text-[11px] uppercase tracking-wider">Pricing Terms &amp; Conditions</p>
-              <p className="leading-relaxed">
-                This estimate is based on <span className="font-bold text-slate-600">{employeeCount} employees</span> processed <span className="font-bold text-slate-600">{FREQUENCIES[frequency].label.toLowerCase()}</span>.
-                Actual billing may vary based on fluctuations in employee count. Setup fees are one-time charges billed at onboarding.
-                Year-end processing fees (W-2, 1094-C/1095-C) are billed separately during their respective filing periods.
-                Prices are subject to change with 30 days written notice. This quote is valid for 30 days from the date of issue.
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300 print-footer">
-              <span>Creative Planning Payroll &bull; Confidential</span>
-              <span>Generated {formatDate(quoteDate)}</span>
+              {/* Footer */}
+              <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300 print-footer">
+                <span>Creative Planning Payroll &bull; Confidential</span>
+                <span>Generated {formatDate(quoteDate)}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -816,20 +822,22 @@ export default function PayrollQuoteCalculator() {
                 })}
               </div>
 
-              {/* Contact / Next Steps */}
-              <div className="mt-8 bg-brand-navy/5 border border-brand-navy/10 rounded-xl p-6 services-contact">
-                <div className="text-center">
-                  <p className="text-sm font-bold text-brand-navy font-display">Ready to get started?</p>
-                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed max-w-md mx-auto">
-                    Contact your Creative Planning Payroll representative to discuss your customized solution and begin onboarding.
-                  </p>
+              {/* Contact + Footer kept together */}
+              <div className="print-keep-together">
+                <div className="mt-8 bg-brand-navy/5 border border-brand-navy/10 rounded-xl p-6 services-contact">
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-brand-navy font-display">Ready to get started?</p>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed max-w-md mx-auto">
+                      Contact your Creative Planning Payroll representative to discuss your customized solution and begin onboarding.
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Footer */}
-              <div className="mt-6 pt-3 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300 services-footer">
-                <span>Creative Planning Payroll &bull; Confidential</span>
-                <span>Generated {formatDate(quoteDate)}</span>
+                {/* Footer */}
+                <div className="mt-6 pt-3 border-t border-stone-100 flex justify-between items-center text-[10px] text-slate-300 services-footer">
+                  <span>Creative Planning Payroll &bull; Confidential</span>
+                  <span>Generated {formatDate(quoteDate)}</span>
+                </div>
               </div>
             </div>
           </section>

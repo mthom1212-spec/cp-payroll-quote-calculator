@@ -143,6 +143,12 @@ body {
     font-size: 0.8rem !important;
   }
 
+  /* Prevent orphaned footers and keep related sections together */
+  .print-keep-together {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
   /* Keep T&C and footer compact in print */
   .print-tc {
     margin-top: 0.5rem !important;
