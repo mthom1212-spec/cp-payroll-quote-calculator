@@ -586,73 +586,99 @@ export default function PayrollQuoteCalculator() {
                       {isActive && (
                         <div className="px-5 pb-5 animate-fade-up">
                           <div className="ml-8">
-                            {/* Cost per payroll banner */}
-                            <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-t-lg px-3 py-2">
-                              <span className="text-sm font-bold text-brand-navy">
-                                {formatMoney(costs.perPayroll)}
-                                <span className="text-xs font-normal text-brand-navy/60 ml-1">/ payroll</span>
-                              </span>
-                              {costs.isMinApplied && (
-                                <span className="text-[9px] bg-brand-gold/20 text-brand-goldDark px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1">
-                                  <Icon.AlertCircle className="w-3 h-3" />
-                                  Minimum Applied
-                                </span>
-                              )}
-                            </div>
+                            {sCorpMode ? (() => {
+                              const sc = calculateSCorpCost();
+                              return (
+                                <>
+                                  {/* S-Corp: simple flat rate banner */}
+                                  <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
+                                    <span className="text-sm font-bold text-brand-navy">
+                                      {formatMoney(sc.perPeriod)}
+                                      <span className="text-xs font-normal text-brand-navy/60 ml-1">/ {sc.periodLabel}</span>
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      {formatMoney(sc.annual)} / year
+                                    </span>
+                                  </div>
 
-                            {/* Rate breakdown */}
-                            <div className="grid grid-cols-3 text-center text-xs border border-t-0 border-stone-200 rounded-b-lg divide-x divide-stone-200 bg-white">
-                              <div className="py-2 px-2">
-                                <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Base Fee</div>
-                                <div className="font-semibold text-slate-700">{formatMoney(costs.rates.base)}</div>
-                              </div>
-                              <div className="py-2 px-2">
-                                <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Per Employee</div>
-                                <div className="font-semibold text-slate-700">{formatMoney(costs.rates.pepm)}</div>
-                              </div>
-                              <div className="py-2 px-2">
-                                <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Minimum</div>
-                                <div className="font-semibold text-slate-700">{formatMoney(costs.rates.min)}</div>
-                              </div>
-                            </div>
-
-                            {/* Payroll Base Rate Override */}
-                            {module.id === 'payroll' && (
-                              <div className="mt-2 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                <span className="text-[11px] text-amber-700 font-medium">Override Base Rate (per payroll)</span>
-                                <div className="flex items-center gap-2">
-                                  {payrollBaseOverride !== null && (
-                                    <button
-                                      onClick={() => setPayrollBaseOverride(null)}
-                                      className="text-[10px] text-amber-600 hover:text-amber-800 underline"
-                                    >
-                                      Reset
-                                    </button>
+                                  {/* Year-end W-2 */}
+                                  <div className="mt-2 flex justify-between items-center text-[11px] text-brand-navy/70 bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-100">
+                                    <span>+ Annual W-2 Processing (billed in Jan)</span>
+                                    <span className="font-bold text-brand-navy">{formatMoney(sc.yearEnd)}</span>
+                                  </div>
+                                </>
+                              );
+                            })() : (
+                              <>
+                                {/* Cost per payroll banner */}
+                                <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-t-lg px-3 py-2">
+                                  <span className="text-sm font-bold text-brand-navy">
+                                    {formatMoney(costs.perPayroll)}
+                                    <span className="text-xs font-normal text-brand-navy/60 ml-1">/ payroll</span>
+                                  </span>
+                                  {costs.isMinApplied && (
+                                    <span className="text-[9px] bg-brand-gold/20 text-brand-goldDark px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1">
+                                      <Icon.AlertCircle className="w-3 h-3" />
+                                      Minimum Applied
+                                    </span>
                                   )}
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-amber-600 text-sm">$</span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="1"
-                                      value={payrollBaseOverride !== null ? payrollBaseOverride : (PRICING_CONFIG.payroll.baseFee * getMultiplier())}
-                                      onChange={(e) => {
-                                        const val = parseFloat(e.target.value);
-                                        setPayrollBaseOverride(isNaN(val) ? null : val);
-                                      }}
-                                      className="w-20 text-right text-sm border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
-                                    />
+                                </div>
+
+                                {/* Rate breakdown */}
+                                <div className="grid grid-cols-3 text-center text-xs border border-t-0 border-stone-200 rounded-b-lg divide-x divide-stone-200 bg-white">
+                                  <div className="py-2 px-2">
+                                    <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Base Fee</div>
+                                    <div className="font-semibold text-slate-700">{formatMoney(costs.rates.base)}</div>
+                                  </div>
+                                  <div className="py-2 px-2">
+                                    <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Per Employee</div>
+                                    <div className="font-semibold text-slate-700">{formatMoney(costs.rates.pepm)}</div>
+                                  </div>
+                                  <div className="py-2 px-2">
+                                    <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Minimum</div>
+                                    <div className="font-semibold text-slate-700">{formatMoney(costs.rates.min)}</div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
 
-                            {/* Year-end line item */}
-                            {module.hasYearEnd && (
-                              <div className="mt-2 flex justify-between items-center text-[11px] text-brand-navy/70 bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-100">
-                                <span>+ {module.yearEndName}</span>
-                                <span className="font-bold text-brand-navy">{formatMoney(costs.yearEnd)}</span>
-                              </div>
+                                {/* Payroll Base Rate Override */}
+                                {module.id === 'payroll' && (
+                                  <div className="mt-2 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                    <span className="text-[11px] text-amber-700 font-medium">Override Base Rate (per payroll)</span>
+                                    <div className="flex items-center gap-2">
+                                      {payrollBaseOverride !== null && (
+                                        <button
+                                          onClick={() => setPayrollBaseOverride(null)}
+                                          className="text-[10px] text-amber-600 hover:text-amber-800 underline"
+                                        >
+                                          Reset
+                                        </button>
+                                      )}
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-amber-600 text-sm">$</span>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          value={payrollBaseOverride !== null ? payrollBaseOverride : (PRICING_CONFIG.payroll.baseFee * getMultiplier())}
+                                          onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setPayrollBaseOverride(isNaN(val) ? null : val);
+                                          }}
+                                          className="w-20 text-right text-sm border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Year-end line item */}
+                                {module.hasYearEnd && (
+                                  <div className="mt-2 flex justify-between items-center text-[11px] text-brand-navy/70 bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-100">
+                                    <span>+ {module.yearEndName}</span>
+                                    <span className="font-bold text-brand-navy">{formatMoney(costs.yearEnd)}</span>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
