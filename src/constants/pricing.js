@@ -21,7 +21,7 @@ export const PRICING_CONFIG = {
     baseFee: 0.00,
     pepm: 2.70,
     minimum: 50.00,
-    defaultSetup: 250.00,
+    defaultSetup: 1500.00,
     hasYearEnd: false,
   },
   hcm: {
@@ -31,7 +31,7 @@ export const PRICING_CONFIG = {
     baseFee: 0.00,
     pepm: 2.70,
     minimum: 60.00,
-    defaultSetup: 500.00,
+    defaultSetup: 3500.00,
     hasYearEnd: false,
   },
   aca: {
