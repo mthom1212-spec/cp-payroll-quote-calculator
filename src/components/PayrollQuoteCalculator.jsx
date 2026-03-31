@@ -76,7 +76,11 @@ export default function PayrollQuoteCalculator() {
     const isQuarterlyBilling = frequency !== 'biweekly' && frequency !== 'weekly' && frequency !== 'semimonthly';
     let perPeriod, periodsPerYear, periodLabel;
 
-    if (isQuarterlyBilling) {
+    if (frequency === 'annual') {
+      perPeriod = 1000;
+      periodsPerYear = 1;
+      periodLabel = 'year';
+    } else if (isQuarterlyBilling) {
       perPeriod = 250;
       periodsPerYear = 4;
       periodLabel = 'quarter';
@@ -740,7 +744,7 @@ export default function PayrollQuoteCalculator() {
               <thead>
                 <tr className="border-b-2 border-brand-navy text-left text-[10px] font-bold text-brand-navy uppercase tracking-widest">
                   <th className="pb-3 pl-2">Service Module</th>
-                  <th className="pb-3 text-right">{sCorpMode && totals.sCorpPeriodLabel === 'quarter' ? 'Per Quarter' : 'Per Payroll'}</th>
+                  <th className="pb-3 text-right">{sCorpMode ? (totals.sCorpPeriodLabel === 'quarter' ? 'Per Quarter' : totals.sCorpPeriodLabel === 'year' ? 'Annual' : 'Per Payroll') : 'Per Payroll'}</th>
                   {!clientFacing &&<th className="pb-3 text-right">Annual Est.</th>}
                   <th className="pb-3 text-right pr-2">Setup Fee</th>
                 </tr>
