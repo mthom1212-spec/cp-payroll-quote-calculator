@@ -65,7 +65,13 @@ export const FREQUENCIES = {
   biweekly:    { label: 'Bi-Weekly',    periods: 26 },
   semimonthly: { label: 'Semi-Monthly', periods: 24 },
   monthly:     { label: 'Monthly',      periods: 12 },
+  quarterly:   { label: 'Quarterly',    periods: 4 },
+  annual:      { label: 'Annually',     periods: 1 },
 };
+
+// Frequencies available in each mode
+export const STANDARD_FREQUENCIES = ['weekly', 'biweekly', 'semimonthly', 'monthly'];
+export const SCORP_FREQUENCIES = ['biweekly', 'monthly', 'quarterly', 'annual'];
 
 // Services included with each module (for client-facing quotes)
 export const MODULE_SERVICES = {
@@ -140,6 +146,20 @@ export const MODULE_SERVICES = {
       'Flexible workflows and approvals',
       'Multiple manager reviews',
       'Real-time reporting and analytics',
+    ],
+  },
+  scorp: {
+    name: 'Owner-Only S-Corp Payroll',
+    services: [
+      'Dedicated Payroll Specialist with support via phone, email, or virtual meeting',
+      'Web-based/Mobile Software Access',
+      'Payroll Processing, Calculations for Earnings & Deductions',
+      'Year-End Fringe Benefits Reporting',
+      'Direct Deposit / ACH Management',
+      'Tax Table Updates & Applied Jurisdiction Identification',
+      'Federal & State Payroll Tax Collection & Remittance',
+      'Automatic Email Notifications',
+      'Quarterly State & Federal Payroll Tax Filing (first state included)',
     ],
   },
   ats: {

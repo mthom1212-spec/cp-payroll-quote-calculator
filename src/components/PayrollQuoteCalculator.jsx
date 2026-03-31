@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PRICING_CONFIG, FREQUENCIES, MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, formatMoney, formatDate } from '../constants/pricing';
+import { PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES, MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, formatMoney, formatDate } from '../constants/pricing';
 import { Icon } from './Icons';
 import Toggle from './Toggle';
 
@@ -38,6 +38,9 @@ export default function PayrollQuoteCalculator() {
     return initial;
   });
 
+  const [sCorpMode, setSCorpMode] = useState(false);
+  const [sCorpSetup, setSCorpSetup] = useState({ included: true, amount: 750 });
+
   const [setupFees, setSetupFees] = useState(() => {
     const initial = {};
     Object.entries(PRICING_CONFIG).forEach(([key, config]) => {
@@ -48,6 +51,47 @@ export default function PayrollQuoteCalculator() {
     });
     return initial;
   });
+
+  // S-Corp mode handler
+  const toggleSCorpMode = () => {
+    setSCorpMode(prev => {
+      if (!prev) {
+        // Entering S-Corp: default to 1 employee, monthly frequency
+        setEmployeeCount(1);
+        setFrequency('monthly');
+        setDiscountPercent(0);
+        setShowAncillary(false);
+        setPayrollBaseOverride(null);
+      } else {
+        // Leaving S-Corp: restore defaults
+        setEmployeeCount(15);
+        setFrequency('biweekly');
+      }
+      return !prev;
+    });
+  };
+
+  // S-Corp cost calculation
+  const calculateSCorpCost = () => {
+    const isQuarterlyBilling = frequency !== 'biweekly' && frequency !== 'weekly' && frequency !== 'semimonthly';
+    let perPeriod, periodsPerYear, periodLabel;
+
+    if (isQuarterlyBilling) {
+      perPeriod = 250;
+      periodsPerYear = 4;
+      periodLabel = 'quarter';
+    } else {
+      perPeriod = 48 * getMultiplier();
+      periodsPerYear = FREQUENCIES[frequency].periods;
+      periodLabel = 'payroll';
+    }
+
+    const annual = perPeriod * periodsPerYear;
+    const yearEnd = 150 + (6.95 * employeeCount);
+    const setup = sCorpSetup.included ? parseFloat(sCorpSetup.amount || 0) : 0;
+
+    return { perPeriod, annual, yearEnd, setup, periodLabel };
+  };
 
   // --- Calculations ---
   const getMultiplier = () => {
@@ -87,6 +131,17 @@ export default function PayrollQuoteCalculator() {
   };
 
   const totals = useMemo(() => {
+    if (sCorpMode) {
+      const sc = calculateSCorpCost();
+      return {
+        subtotalPerPayroll: sc.perPeriod, subtotalAnnual: sc.annual,
+        discountPerPayroll: 0, discountAnnual: 0,
+        finalPerPayroll: sc.perPeriod, finalAnnual: sc.annual,
+        totalSetup: sc.setup, totalYearEnd: sc.yearEnd,
+        sCorpPeriodLabel: sc.periodLabel,
+      };
+    }
+
     let subtotalPerPayroll = 0;
     let subtotalAnnual = 0;
     let totalSetup = 0;
@@ -122,7 +177,7 @@ export default function PayrollQuoteCalculator() {
       finalPerPayroll, finalAnnual,
       totalSetup, totalYearEnd,
     };
-  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride]);
+  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -221,9 +276,9 @@ export default function PayrollQuoteCalculator() {
                         onChange={(e) => setFrequency(e.target.value)}
                         className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm appearance-none bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition pr-10"
                       >
-                        {Object.entries(FREQUENCIES).map(([key, data]) => (
+                        {(sCorpMode ? SCORP_FREQUENCIES : STANDARD_FREQUENCIES).map(key => (
                           <option key={key} value={key}>
-                            {data.label} ({data.periods} periods/yr)
+                            {FREQUENCIES[key].label} ({FREQUENCIES[key].periods} periods/yr)
                           </option>
                         ))}
                       </select>
@@ -314,8 +369,8 @@ export default function PayrollQuoteCalculator() {
 
                   <hr className="border-stone-100" />
 
-                  {/* Ancillary Services Toggle */}
-                  <div>
+                  {/* Ancillary Services Toggle (hidden in S-Corp mode) */}
+                  {!sCorpMode && <div>
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ancillary Services</label>
                       <Toggle
@@ -386,6 +441,48 @@ export default function PayrollQuoteCalculator() {
                         </div>
                       </div>
                     )}
+                  </div>}
+
+                  <hr className="border-stone-100" />
+
+                  {/* S-Corp Mode Toggle */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">S-Corp / Owner-Only</label>
+                      <Toggle
+                        checked={sCorpMode}
+                        onChange={toggleSCorpMode}
+                        label="Toggle S-Corp mode"
+                      />
+                    </div>
+                    {sCorpMode && (
+                      <div className="mt-3 space-y-2.5">
+                        <p className="text-[10px] text-slate-400 italic">Owner-only payroll — simplified pricing at $250/quarter (or $48/pay period bi-weekly).</p>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Setup Fee</label>
+                          <div className="mt-1 flex items-center gap-2">
+                            <Toggle
+                              checked={sCorpSetup.included}
+                              onChange={() => setSCorpSetup(prev => ({ ...prev, included: !prev.included }))}
+                              label="Toggle S-Corp setup fee"
+                            />
+                            {sCorpSetup.included ? (
+                              <div className="flex items-center gap-0.5">
+                                <span className="text-slate-400 text-sm">$</span>
+                                <input
+                                  type="number"
+                                  value={sCorpSetup.amount}
+                                  onChange={(e) => setSCorpSetup(prev => ({ ...prev, amount: e.target.value }))}
+                                  className="w-20 text-right text-sm border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">Waived</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -416,8 +513,8 @@ export default function PayrollQuoteCalculator() {
               </div>
             </div>
 
-            {/* Right: Module Selector Cards */}
-            <div className="lg:col-span-8">
+            {/* Right: Module Selector Cards (hidden in S-Corp mode) */}
+            {!sCorpMode && <div className="lg:col-span-8">
               <div className="space-y-4">
                 {Object.values(PRICING_CONFIG).map((module) => {
                   const isActive = selectedModules[module.id];
@@ -563,7 +660,7 @@ export default function PayrollQuoteCalculator() {
                   );
                 })}
               </div>
-            </div>
+            </div>}
           </div>
         </section>
 
@@ -616,12 +713,45 @@ export default function PayrollQuoteCalculator() {
               <thead>
                 <tr className="border-b-2 border-brand-navy text-left text-[10px] font-bold text-brand-navy uppercase tracking-widest">
                   <th className="pb-3 pl-2">Service Module</th>
-                  <th className="pb-3 text-right">Per Payroll</th>
+                  <th className="pb-3 text-right">{sCorpMode && totals.sCorpPeriodLabel === 'quarter' ? 'Per Quarter' : 'Per Payroll'}</th>
                   {!clientFacing &&<th className="pb-3 text-right">Annual Est.</th>}
                   <th className="pb-3 text-right pr-2">Setup Fee</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
+                {/* S-Corp mode: single row */}
+                {sCorpMode ? (() => {
+                  const sc = calculateSCorpCost();
+                  return (
+                    <tr className="text-sm">
+                      <td className="py-4 pl-2">
+                        <div className="font-bold text-slate-800">Owner-Only S-Corp Payroll</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {sc.periodLabel === 'quarter'
+                            ? `Flat rate: ${formatMoney(sc.perPeriod)}/quarter`
+                            : `Base: ${formatMoney(sc.perPeriod)}/payroll`
+                          }
+                        </div>
+                        <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
+                          + Annual W-2 Processing (billed in Jan): {formatMoney(sc.yearEnd)}
+                        </div>
+                      </td>
+                      <td className="py-4 text-right font-semibold text-slate-700">
+                        {formatMoney(sc.perPeriod)}
+                      </td>
+                      {!clientFacing && (
+                        <td className="py-4 text-right text-slate-600">
+                          {formatMoney(sc.annual)}
+                        </td>
+                      )}
+                      <td className="py-4 text-right text-slate-600 pr-2">
+                        {sc.setup > 0 ? formatMoney(sc.setup) : '\u2014'}
+                      </td>
+                    </tr>
+                  );
+                })() : (
+                <>
+                {/* Standard mode: all modules */}
                 {Object.values(PRICING_CONFIG).map((module) => {
                   if (!selectedModules[module.id]) return null;
                   const costs = calculateModuleCost(module.id);
@@ -667,15 +797,15 @@ export default function PayrollQuoteCalculator() {
                   );
                 })}
 
-                {/* Ancillary per-payroll services (included in totals) */}
-                {activeAncillaryPricingCount > 0 && (
+                {/* Ancillary per-payroll services (included in totals, hidden in S-Corp) */}
+                {!sCorpMode && activeAncillaryPricingCount > 0 && (
                   <tr>
                     <td colSpan={clientFacing ? 3 : 4} className="pt-4 pb-1 pl-2">
                       <span className="text-[9px] font-bold text-brand-navy/60 uppercase tracking-widest">Ancillary Services</span>
                     </td>
                   </tr>
                 )}
-                {Object.values(ANCILLARY_PRICING).map((svc) => {
+                {!sCorpMode && Object.values(ANCILLARY_PRICING).map((svc) => {
                   if (!selectedAncillary[svc.id]) return null;
                   const costs = calculateModuleCost(svc.id, ANCILLARY_PRICING);
                   return (
@@ -705,10 +835,11 @@ export default function PayrollQuoteCalculator() {
                     </tr>
                   );
                 })}
+                </>)}
               </tbody>
               <tfoot className="border-t-2 border-brand-navy">
-                {/* Discount rows */}
-                {discountPercent > 0 && (
+                {/* Discount rows (not in S-Corp mode) */}
+                {!sCorpMode && discountPercent > 0 && (
                   <>
                     <tr>
                       <td className="pt-4 pl-2 font-semibold text-slate-400 text-sm">Subtotal</td>
@@ -761,8 +892,8 @@ export default function PayrollQuoteCalculator() {
 
             {/* Usage-based, T&C, and footer kept together in print */}
             <div className="print-keep-together">
-              {/* Usage-Based Services (informational only) */}
-              {activeAncillaryUsageCount > 0 && (
+              {/* Usage-Based Services (informational only, hidden in S-Corp) */}
+              {!sCorpMode && activeAncillaryUsageCount > 0 && (
                 <div className="mt-6 pt-4 border-t border-stone-100">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Additional Usage-Based Services</p>
                   <p className="text-[9px] text-slate-400 mb-2 italic">Fees incurred when utilized — not included in totals above.</p>
@@ -837,9 +968,11 @@ export default function PayrollQuoteCalculator() {
             <div className="p-8 print-services-compact">
               <div className="space-y-6">
                 {Object.entries(MODULE_SERVICES).map(([key, moduleData]) => {
-                  const isSelected = selectedModules[key] || selectedAncillary[key];
+                  const isSelected = sCorpMode ? (key === 'scorp') : (selectedModules[key] || selectedAncillary[key]);
                   if (!isSelected) return null;
-                  const activeServiceModules = Object.keys(MODULE_SERVICES).filter(k => selectedModules[k] || selectedAncillary[k]);
+                  const activeServiceModules = sCorpMode
+                    ? ['scorp']
+                    : Object.keys(MODULE_SERVICES).filter(k => selectedModules[k] || selectedAncillary[k]);
                   const useColumns = activeServiceModules.length === 1;
 
                   return (
