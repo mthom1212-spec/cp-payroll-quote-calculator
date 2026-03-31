@@ -513,11 +513,12 @@ export default function PayrollQuoteCalculator() {
               </div>
             </div>
 
-            {/* Right: Module Selector Cards (hidden in S-Corp mode) */}
-            {!sCorpMode && <div className="lg:col-span-8">
+            {/* Right: Module Selector Cards */}
+            <div className="lg:col-span-8">
               <div className="space-y-4">
                 {Object.values(PRICING_CONFIG).map((module) => {
-                  const isActive = selectedModules[module.id];
+                  if (sCorpMode && module.id !== 'payroll') return null;
+                  const isActive = sCorpMode ? true : selectedModules[module.id];
                   const costs = calculateModuleCost(module.id);
 
                   return (
@@ -660,7 +661,7 @@ export default function PayrollQuoteCalculator() {
                   );
                 })}
               </div>
-            </div>}
+            </div>
           </div>
         </section>
 
