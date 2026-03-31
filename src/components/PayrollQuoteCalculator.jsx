@@ -921,6 +921,36 @@ export default function PayrollQuoteCalculator() {
             </table>
             </div>
 
+            {/* S-Corp: inline services on same page (print only merges, screen shows separately) */}
+            {sCorpMode && clientFacing && (
+              <div className="hidden print-scorp-services mt-4 pt-4 border-t border-stone-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1 h-4 bg-brand-gold rounded-full"></div>
+                  <h3 className="text-xs font-bold text-brand-navy uppercase tracking-widest">Services Included</h3>
+                </div>
+                <ul className="grid grid-cols-2 gap-x-4 gap-y-1 ml-3">
+                  {MODULE_SERVICES.scorp.services.map((service, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5 text-[10px] text-slate-600">
+                      <span className="text-brand-gold mt-0.5 flex-shrink-0">
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                      <span className="leading-snug">{service}</span>
+                    </li>
+                  ))}
+                </ul>
+                {showRepInfo && (repName || repPhone || repEmail) && (
+                  <div className="mt-3 pt-3 border-t border-stone-100 text-center">
+                    <p className="text-[10px] text-slate-500 mb-1">Contact your Creative Planning Payroll representative to get started.</p>
+                    {repName && <p className="text-xs font-bold text-brand-gold">{repName}</p>}
+                    {repPhone && <p className="text-[10px] font-semibold text-brand-gold">{repPhone}</p>}
+                    {repEmail && <p className="text-[10px] font-semibold text-brand-gold">{repEmail}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Usage-based, T&C, and footer kept together in print */}
             <div className="print-keep-together">
               {/* Usage-Based Services (informational only, hidden in S-Corp) */}
@@ -973,9 +1003,9 @@ export default function PayrollQuoteCalculator() {
           </div>
         </section>
 
-        {/* Page 2: Services Included (Client Facing Only) */}
+        {/* Page 2: Services Included (Client Facing Only, separate page in print — hidden for S-Corp print) */}
         {clientFacing && (
-          <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break print-services-compact">
+          <section className={`bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break print-services-compact ${sCorpMode ? 'print-scorp-hide' : ''}`}>
 
             {/* Services Header */}
             <div className="bg-brand-navy text-white p-8 services-header">

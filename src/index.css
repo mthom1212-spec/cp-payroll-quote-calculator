@@ -91,6 +91,15 @@ body {
     print-color-adjust: exact !important;
   }
 
+  /* S-Corp: show inline services on quote page, hide separate services section */
+  .print-scorp-services {
+    display: block !important;
+  }
+
+  .print-scorp-hide {
+    display: none !important;
+  }
+
   /* Pricing page: pin T&C to bottom when short, flow naturally when long */
   .print-page-fill {
     min-height: 100vh !important;
