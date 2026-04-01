@@ -218,7 +218,7 @@ export default function PayrollQuoteCalculator() {
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-xl font-bold tracking-tight font-display">Creative Planning Payroll</h1>
-              <p className="text-white/60 text-xs tracking-wide uppercase">Quote Calculator</p>
+              <p className="text-white/60 text-xs tracking-wide uppercase">Quote Builder</p>
             </div>
           </div>
           <button
