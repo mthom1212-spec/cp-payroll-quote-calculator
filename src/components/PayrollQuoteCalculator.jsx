@@ -41,6 +41,9 @@ export default function PayrollQuoteCalculator() {
   const [sCorpMode, setSCorpMode] = useState(false);
   const [sCorpSetup, setSCorpSetup] = useState({ included: true, amount: 750 });
 
+  const [stateTaxId, setStateTaxId] = useState({ enabled: false, quantity: 1 });
+  const stateTaxIdTotal = stateTaxId.enabled ? 250 * (parseInt(stateTaxId.quantity) || 0) : 0;
+
   const [setupFees, setSetupFees] = useState(() => {
     const initial = {};
     Object.entries(PRICING_CONFIG).forEach(([key, config]) => {
@@ -141,7 +144,7 @@ export default function PayrollQuoteCalculator() {
         subtotalPerPayroll: sc.perPeriod, subtotalAnnual: sc.annual,
         discountPerPayroll: 0, discountAnnual: 0,
         finalPerPayroll: sc.perPeriod, finalAnnual: sc.annual,
-        totalSetup: sc.setup, totalYearEnd: sc.yearEnd,
+        totalSetup: sc.setup + stateTaxIdTotal, totalYearEnd: sc.yearEnd,
         sCorpPeriodLabel: sc.periodLabel,
       };
     }
@@ -179,9 +182,9 @@ export default function PayrollQuoteCalculator() {
       subtotalPerPayroll, subtotalAnnual,
       discountPerPayroll, discountAnnual,
       finalPerPayroll, finalAnnual,
-      totalSetup, totalYearEnd,
+      totalSetup: totalSetup + stateTaxIdTotal, totalYearEnd,
     };
-  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup]);
+  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -690,6 +693,53 @@ export default function PayrollQuoteCalculator() {
                     </div>
                   );
                 })}
+
+                {/* State Tax ID Application Card */}
+                <div className={`rounded-2xl border transition-all duration-200 ${
+                  stateTaxId.enabled
+                    ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
+                    : 'border-stone-200 bg-white hover:border-stone-300 shadow-sm'
+                }`}>
+                  <div className="p-5 flex justify-between items-start">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="pt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={stateTaxId.enabled}
+                          onChange={() => setStateTaxId(prev => ({ ...prev, enabled: !prev.enabled }))}
+                          className="w-5 h-5 rounded cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-brand-navy">State Tax ID Application</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">State tax ID registration on behalf of client — $250 per ID</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {stateTaxId.enabled && (
+                    <div className="px-5 pb-5 animate-fade-up">
+                      <div className="ml-8">
+                        <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-brand-navy/70 font-medium">Number of IDs</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={stateTaxId.quantity}
+                              onChange={(e) => setStateTaxId(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
+                              className="w-16 text-center text-sm border border-stone-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-brand-navy">
+                            {formatMoney(stateTaxIdTotal)}
+                            <span className="text-xs font-normal text-brand-navy/60 ml-1">one-time</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -867,6 +917,23 @@ export default function PayrollQuoteCalculator() {
                   );
                 })}
                 </>)}
+
+                {/* State Tax ID Application */}
+                {stateTaxId.enabled && (
+                  <tr className="text-sm border-t border-stone-100">
+                    <td className="py-3 pl-2">
+                      <div className="font-bold text-slate-800">State Tax ID Application</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {stateTaxId.quantity} {parseInt(stateTaxId.quantity) === 1 ? 'ID' : 'IDs'} × $250
+                      </div>
+                    </td>
+                    <td className="py-3 text-right text-slate-300">{'\u2014'}</td>
+                    {!clientFacing && <td className="py-3 text-right text-slate-300">{'\u2014'}</td>}
+                    <td className="py-3 text-right font-semibold text-slate-700 pr-2">
+                      {formatMoney(stateTaxIdTotal)}
+                    </td>
+                  </tr>
+                )}
               </tbody>
               <tfoot className="border-t-2 border-brand-navy">
                 {/* Discount rows (not in S-Corp mode) */}
