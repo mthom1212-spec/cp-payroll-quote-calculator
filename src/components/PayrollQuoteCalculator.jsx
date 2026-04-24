@@ -29,6 +29,7 @@ export default function PayrollQuoteCalculator() {
   });
 
   const [payrollBaseOverride, setPayrollBaseOverride] = useState(null);
+  const [additionalJurisdictions, setAdditionalJurisdictions] = useState(0);
 
   const [showAncillary, setShowAncillary] = useState(false);
   const [selectedAncillary, setSelectedAncillary] = useState(() => {
@@ -93,6 +94,8 @@ export default function PayrollQuoteCalculator() {
       periodLabel = 'payroll';
     }
 
+    const jurisdictionFee = additionalJurisdictions > 0 ? additionalJurisdictions * 10 : 0;
+    perPeriod += jurisdictionFee;
     const annual = perPeriod * periodsPerYear;
     const yearEnd = 150 + (6.95 * employeeCount);
     const setup = sCorpSetup.included ? parseFloat(sCorpSetup.amount || 0) : 0;
@@ -118,8 +121,13 @@ export default function PayrollQuoteCalculator() {
     const adjMin = config.minimum * multiplier;
 
     const rawCost = adjBase + (adjPepm * employeeCount);
-    const perPayroll = Math.max(rawCost, adjMin);
+    const basePer = Math.max(rawCost, adjMin);
     const isMinApplied = rawCost < adjMin;
+
+    const jurisdictionFee = (moduleKey === 'payroll' && additionalJurisdictions > 0)
+      ? additionalJurisdictions * 10
+      : 0;
+    const perPayroll = basePer + jurisdictionFee;
 
     let yearEnd = 0;
     if (config.hasYearEnd) {
@@ -184,7 +192,7 @@ export default function PayrollQuoteCalculator() {
       finalPerPayroll, finalAnnual,
       totalSetup: totalSetup + stateTaxIdTotal, totalYearEnd,
     };
-  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId]);
+  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -678,6 +686,25 @@ export default function PayrollQuoteCalculator() {
                                   </div>
                                 )}
 
+                                {/* Additional Tax Jurisdictions */}
+                                {module.id === 'payroll' && (
+                                  <div className="mt-2 flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                                    <span className="text-[11px] text-slate-600 font-medium">Additional Tax Jurisdictions ($10/ea per payroll)</span>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={additionalJurisdictions}
+                                        onChange={(e) => setAdditionalJurisdictions(parseInt(e.target.value) || 0)}
+                                        className="w-16 text-center text-sm border border-stone-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                                      />
+                                      {additionalJurisdictions > 0 && (
+                                        <span className="text-xs font-semibold text-slate-600">+{formatMoney(additionalJurisdictions * 10)}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
                                 {/* Year-end line item */}
                                 {module.hasYearEnd && (
                                   <div className="mt-2 flex justify-between items-center text-[11px] text-brand-navy/70 bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-100">
@@ -847,9 +874,14 @@ export default function PayrollQuoteCalculator() {
                             : `Rate: ${formatMoney(costs.rates.pepm)}/emp (Min ${formatMoney(costs.rates.min)})`
                           }
                         </div>
-                        {module.id === 'payroll' && (
+                        {module.id === 'payroll' && !sCorpMode && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
                             + New Hire Reporting: $3/New Hire
+                          </div>
+                        )}
+                        {module.id === 'payroll' && additionalJurisdictions > 0 && (
+                          <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
+                            + Additional Tax Jurisdictions: {additionalJurisdictions} × $10 = {formatMoney(additionalJurisdictions * 10)}/payroll
                           </div>
                         )}
                         {module.hasYearEnd && (
