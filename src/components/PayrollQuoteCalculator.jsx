@@ -31,6 +31,9 @@ export default function PayrollQuoteCalculator() {
   const [payrollBaseOverride, setPayrollBaseOverride] = useState(null);
   const [additionalJurisdictions, setAdditionalJurisdictions] = useState(0);
 
+  // Ancillary rate overrides: { [id]: { pepm: number|null, minimum: number|null } }
+  const [ancillaryRateOverrides, setAncillaryRateOverrides] = useState({});
+
   const [showAncillary, setShowAncillary] = useState(false);
   const [selectedAncillary, setSelectedAncillary] = useState(() => {
     const initial = {};
@@ -117,8 +120,14 @@ export default function PayrollQuoteCalculator() {
     const adjBase = (moduleKey === 'payroll' && payrollBaseOverride !== null)
       ? payrollBaseOverride
       : config.baseFee * multiplier;
-    const adjPepm = config.pepm * multiplier;
-    const adjMin = config.minimum * multiplier;
+
+    const overrides = ancillaryRateOverrides[moduleKey];
+    const adjPepm = (overrides?.pepm !== null && overrides?.pepm !== undefined)
+      ? overrides.pepm * multiplier
+      : config.pepm * multiplier;
+    const adjMin = (overrides?.minimum !== null && overrides?.minimum !== undefined)
+      ? overrides.minimum * multiplier
+      : config.minimum * multiplier;
 
     const rawCost = adjBase + (adjPepm * employeeCount);
     const basePer = Math.max(rawCost, adjMin);
@@ -192,7 +201,7 @@ export default function PayrollQuoteCalculator() {
       finalPerPayroll, finalAnnual,
       totalSetup: totalSetup + stateTaxIdTotal, totalYearEnd,
     };
-  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions]);
+  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, ancillaryRateOverrides]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -411,27 +420,82 @@ export default function PayrollQuoteCalculator() {
                               </div>
                             </label>
                             {selectedAncillary[svc.id] && (
-                              <div className="ml-6 mt-1 flex items-center gap-2 text-[10px]">
-                                <label className="text-slate-400 font-semibold uppercase tracking-wider">Setup</label>
-                                <Toggle
-                                  checked={setupFees[svc.id]?.included || false}
-                                  onChange={() => toggleSetup(svc.id)}
-                                  label={`Toggle setup fee for ${svc.name}`}
-                                />
-                                {setupFees[svc.id]?.included ? (
-                                  <div className="flex items-center gap-0.5">
-                                    <span className="text-slate-400">$</span>
-                                    <input
-                                      type="number"
-                                      value={setupFees[svc.id]?.amount || 0}
-                                      onChange={(e) => updateSetupAmount(svc.id, e.target.value)}
-                                      className="w-16 text-right text-xs border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
-                                    />
+                              <>
+                                <div className="ml-6 mt-1 flex items-center gap-2 text-[10px]">
+                                  <label className="text-slate-400 font-semibold uppercase tracking-wider">Setup</label>
+                                  <Toggle
+                                    checked={setupFees[svc.id]?.included || false}
+                                    onChange={() => toggleSetup(svc.id)}
+                                    label={`Toggle setup fee for ${svc.name}`}
+                                  />
+                                  {setupFees[svc.id]?.included ? (
+                                    <div className="flex items-center gap-0.5">
+                                      <span className="text-slate-400">$</span>
+                                      <input
+                                        type="number"
+                                        value={setupFees[svc.id]?.amount || 0}
+                                        onChange={(e) => updateSetupAmount(svc.id, e.target.value)}
+                                        className="w-16 text-right text-xs border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 italic">Waived</span>
+                                  )}
+                                </div>
+                                {(svc.id === 'retirement' || svc.id === 'onboarding') && (
+                                  <div className="ml-6 mt-1 flex items-center gap-3 text-[10px]">
+                                    <div className="flex items-center gap-1">
+                                      <label className="text-amber-600 font-semibold uppercase tracking-wider">Rate $</label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.05"
+                                        value={ancillaryRateOverrides[svc.id]?.pepm ?? svc.pepm}
+                                        onChange={(e) => {
+                                          const val = parseFloat(e.target.value);
+                                          setAncillaryRateOverrides(prev => ({
+                                            ...prev,
+                                            [svc.id]: { ...prev[svc.id], pepm: isNaN(val) ? null : val },
+                                          }));
+                                        }}
+                                        className="w-14 text-right text-xs border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
+                                      />
+                                      <span className="text-slate-400">/emp</span>
+                                    </div>
+                                    {svc.minimum > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        <label className="text-amber-600 font-semibold uppercase tracking-wider">Min $</label>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          value={ancillaryRateOverrides[svc.id]?.minimum ?? svc.minimum}
+                                          onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setAncillaryRateOverrides(prev => ({
+                                              ...prev,
+                                              [svc.id]: { ...prev[svc.id], minimum: isNaN(val) ? null : val },
+                                            }));
+                                          }}
+                                          className="w-14 text-right text-xs border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
+                                        />
+                                      </div>
+                                    )}
+                                    {(ancillaryRateOverrides[svc.id]?.pepm != null || ancillaryRateOverrides[svc.id]?.minimum != null) && (
+                                      <button
+                                        onClick={() => setAncillaryRateOverrides(prev => {
+                                          const next = { ...prev };
+                                          delete next[svc.id];
+                                          return next;
+                                        })}
+                                        className="text-[9px] text-amber-600 hover:text-amber-800 underline"
+                                      >
+                                        Reset
+                                      </button>
+                                    )}
                                   </div>
-                                ) : (
-                                  <span className="text-slate-400 italic">Waived</span>
                                 )}
-                              </div>
+                              </>
                             )}
                           </div>
                         ))}

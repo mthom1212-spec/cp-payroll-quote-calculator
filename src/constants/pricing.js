@@ -233,6 +233,15 @@ export const ANCILLARY_PRICING = {
     defaultSetup: 250.00,
     hasYearEnd: false,
   },
+  onboarding: {
+    id: 'onboarding',
+    name: 'Onboarding',
+    baseFee: 0.00,
+    pepm: 0.75,
+    minimum: 0.00,
+    defaultSetup: 0.00,
+    hasYearEnd: false,
+  },
 };
 
 // Ancillary services — usage-based (informational only, not in totals)
