@@ -122,6 +122,7 @@ export const MODULE_SERVICES = {
   tlm: {
     name: 'Timekeeping',
     services: [
+      'Web-based/Mobile Software Access',
       'Attestation Module (i.e. Points, Attendance, etc.)',
       'Job Costing & Labor Distribution',
       'Employee Timecard Self-Service',
