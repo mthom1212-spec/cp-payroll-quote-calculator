@@ -905,7 +905,7 @@ export default function PayrollQuoteCalculator() {
                           }
                         </div>
                         <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
-                          + Annual W-2 Processing (billed in Jan): {formatMoney(sc.yearEnd)}
+                          + Annual W-2 Processing (billed in Jan): {formatMoney(150)} base + {formatMoney(6.95)}/employee (Total: {formatMoney(sc.yearEnd)})
                         </div>
                       </td>
                       <td className="py-4 text-right font-semibold text-slate-700">
@@ -950,7 +950,7 @@ export default function PayrollQuoteCalculator() {
                         )}
                         {module.hasYearEnd && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
-                            + {module.yearEndName}: {formatMoney(costs.yearEnd)}
+                            + {module.yearEndName}: {formatMoney(module.yearEndBase)} base + {formatMoney(module.yearEndPerItem)}/employee (Total: {formatMoney(costs.yearEnd)})
                           </div>
                         )}
                         {costs.isMinApplied && (
