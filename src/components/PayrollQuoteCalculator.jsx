@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+
+const STORAGE_KEY = 'cpp-quote-builder:quotes';
 import { PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES, MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, formatMoney, formatDate } from '../constants/pricing';
 import { Icon } from './Icons';
 import Toggle from './Toggle';
@@ -71,6 +73,75 @@ export default function PayrollQuoteCalculator() {
     });
     return initial;
   });
+
+  // Saved quotes (LocalStorage)
+  const [savedQuotes, setSavedQuotes] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [quoteNameInput, setQuoteNameInput] = useState('');
+  const [showSaveInput, setShowSaveInput] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedQuotes));
+    } catch {}
+  }, [savedQuotes]);
+
+  const saveCurrentQuote = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const snapshot = {
+      clientName, quoteDate, employeeCount, frequency, discountPercent,
+      clientFacing, showRepInfo, repName, repPhone, repEmail,
+      selectedModules, payrollBaseOverride, additionalJurisdictions,
+      showAncillary, selectedAncillary, sCorpMode, sCorpSetup,
+      stateTaxId, pytd, benefitEdi, ancillaryRateOverrides, setupFees,
+      savedAt: new Date().toISOString(),
+    };
+    setSavedQuotes(prev => ({ ...prev, [trimmed]: snapshot }));
+    setQuoteNameInput('');
+    setShowSaveInput(false);
+  };
+
+  const loadQuote = (name) => {
+    const s = savedQuotes[name];
+    if (!s) return;
+    if (s.clientName !== undefined) setClientName(s.clientName);
+    if (s.quoteDate !== undefined) setQuoteDate(s.quoteDate);
+    if (s.employeeCount !== undefined) setEmployeeCount(s.employeeCount);
+    if (s.frequency !== undefined) setFrequency(s.frequency);
+    if (s.discountPercent !== undefined) setDiscountPercent(s.discountPercent);
+    if (s.clientFacing !== undefined) setClientFacing(s.clientFacing);
+    if (s.showRepInfo !== undefined) setShowRepInfo(s.showRepInfo);
+    if (s.repName !== undefined) setRepName(s.repName);
+    if (s.repPhone !== undefined) setRepPhone(s.repPhone);
+    if (s.repEmail !== undefined) setRepEmail(s.repEmail);
+    if (s.selectedModules) setSelectedModules(s.selectedModules);
+    if (s.payrollBaseOverride !== undefined) setPayrollBaseOverride(s.payrollBaseOverride);
+    if (s.additionalJurisdictions !== undefined) setAdditionalJurisdictions(s.additionalJurisdictions);
+    if (s.showAncillary !== undefined) setShowAncillary(s.showAncillary);
+    if (s.selectedAncillary) setSelectedAncillary(s.selectedAncillary);
+    if (s.sCorpMode !== undefined) setSCorpMode(s.sCorpMode);
+    if (s.sCorpSetup) setSCorpSetup(s.sCorpSetup);
+    if (s.stateTaxId) setStateTaxId(s.stateTaxId);
+    if (s.pytd) setPytd(s.pytd);
+    if (s.benefitEdi) setBenefitEdi(s.benefitEdi);
+    if (s.ancillaryRateOverrides) setAncillaryRateOverrides(s.ancillaryRateOverrides);
+    if (s.setupFees) setSetupFees(s.setupFees);
+  };
+
+  const deleteQuote = (name) => {
+    setSavedQuotes(prev => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  };
 
   // S-Corp mode handler
   const toggleSCorpMode = () => {
@@ -284,6 +355,79 @@ export default function PayrollQuoteCalculator() {
                 </h2>
 
                 <div className="space-y-4">
+                  {/* Saved Quotes */}
+                  <div className="bg-brand-navy/5 border border-brand-navy/10 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold text-brand-navy uppercase tracking-wider">Saved Quotes</label>
+                      <button
+                        onClick={() => setShowSaveInput(prev => !prev)}
+                        className="text-[11px] font-semibold text-brand-navy hover:text-brand-gold transition-colors"
+                      >
+                        {showSaveInput ? 'Cancel' : '+ Save Current'}
+                      </button>
+                    </div>
+
+                    {showSaveInput && (
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          value={quoteNameInput}
+                          onChange={(e) => setQuoteNameInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveCurrentQuote(quoteNameInput); }}
+                          placeholder="Quote name…"
+                          autoFocus
+                          className="flex-1 border border-stone-300 rounded-md px-2 py-1.5 text-xs focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                        />
+                        <button
+                          onClick={() => saveCurrentQuote(quoteNameInput)}
+                          disabled={!quoteNameInput.trim()}
+                          className="bg-brand-navy text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-brand-navy/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    )}
+
+                    {Object.keys(savedQuotes).length === 0 ? (
+                      <p className="text-[11px] text-slate-400 italic">No saved quotes yet.</p>
+                    ) : (
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {Object.entries(savedQuotes)
+                          .sort(([, a], [, b]) => (b.savedAt || '').localeCompare(a.savedAt || ''))
+                          .map(([name, data]) => (
+                            <div key={name} className="flex items-center justify-between bg-white border border-stone-200 rounded-md px-2 py-1.5">
+                              <div className="flex-1 min-w-0 mr-2">
+                                <div className="text-xs font-semibold text-slate-700 truncate">{name}</div>
+                                {data.savedAt && (
+                                  <div className="text-[9px] text-slate-400">
+                                    {new Date(data.savedAt).toLocaleDateString()} {new Date(data.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => loadQuote(name)}
+                                  className="text-[10px] font-semibold text-brand-navy hover:text-brand-gold transition-colors px-1.5 py-0.5"
+                                >
+                                  Load
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`Delete saved quote "${name}"?`)) deleteQuote(name);
+                                  }}
+                                  className="text-[10px] font-semibold text-red-400 hover:text-red-600 transition-colors px-1.5 py-0.5"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <hr className="border-stone-100" />
+
                   {/* Client Name */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Client Name</label>
