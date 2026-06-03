@@ -243,6 +243,17 @@ export const ANCILLARY_PRICING = {
     defaultSetup: 0.00,
     hasYearEnd: false,
   },
+  expense: {
+    id: 'expense',
+    name: 'Expense Tracking',
+    baseFee: 0.00,
+    pepm: 0.00,
+    minimum: 0.00,
+    defaultSetup: 500.00,
+    hasYearEnd: false,
+    monthlyBilling: true,
+    monthlyPerUser: 3.00,
+  },
 };
 
 // Ancillary services — usage-based (informational only, not in totals)

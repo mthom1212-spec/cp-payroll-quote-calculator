@@ -48,6 +48,19 @@ export default function PayrollQuoteCalculator() {
   const [stateTaxId, setStateTaxId] = useState({ enabled: false, quantity: 1 });
   const stateTaxIdTotal = stateTaxId.enabled ? 250 * (parseInt(stateTaxId.quantity) || 0) : 0;
 
+  const [pytd, setPytd] = useState({ enabled: false, hours: 0, statements: 0 });
+  const pytdTotal = pytd.enabled
+    ? (150 * (parseFloat(pytd.hours) || 0)) + (0.10 * (parseInt(pytd.statements) || 0))
+    : 0;
+
+  const [benefitEdi, setBenefitEdi] = useState({ enabled: false, feeds: 1 });
+  const benefitEdiTotal = (() => {
+    if (!benefitEdi.enabled) return 0;
+    const feeds = parseInt(benefitEdi.feeds) || 0;
+    if (feeds <= 0) return 0;
+    return 1195 + (995 * (feeds - 1));
+  })();
+
   const [setupFees, setSetupFees] = useState(() => {
     const initial = {};
     Object.entries(PRICING_CONFIG).forEach(([key, config]) => {
@@ -122,9 +135,14 @@ export default function PayrollQuoteCalculator() {
       : config.baseFee * multiplier;
 
     const overrides = ancillaryRateOverrides[moduleKey];
-    const adjPepm = (overrides?.pepm !== null && overrides?.pepm !== undefined)
-      ? overrides.pepm * multiplier
-      : config.pepm * multiplier;
+    let adjPepm;
+    if (config.monthlyBilling) {
+      adjPepm = (config.monthlyPerUser * 12) / FREQUENCIES[frequency].periods;
+    } else if (overrides?.pepm !== null && overrides?.pepm !== undefined) {
+      adjPepm = overrides.pepm * multiplier;
+    } else {
+      adjPepm = config.pepm * multiplier;
+    }
     const adjMin = (overrides?.minimum !== null && overrides?.minimum !== undefined)
       ? overrides.minimum * multiplier
       : config.minimum * multiplier;
@@ -161,7 +179,7 @@ export default function PayrollQuoteCalculator() {
         subtotalPerPayroll: sc.perPeriod, subtotalAnnual: sc.annual,
         discountPerPayroll: 0, discountAnnual: 0,
         finalPerPayroll: sc.perPeriod, finalAnnual: sc.annual,
-        totalSetup: sc.setup + stateTaxIdTotal, totalYearEnd: sc.yearEnd,
+        totalSetup: sc.setup + stateTaxIdTotal + pytdTotal + benefitEdiTotal, totalYearEnd: sc.yearEnd,
         sCorpPeriodLabel: sc.periodLabel,
       };
     }
@@ -199,9 +217,9 @@ export default function PayrollQuoteCalculator() {
       subtotalPerPayroll, subtotalAnnual,
       discountPerPayroll, discountAnnual,
       finalPerPayroll, finalAnnual,
-      totalSetup: totalSetup + stateTaxIdTotal, totalYearEnd,
+      totalSetup: totalSetup + stateTaxIdTotal + pytdTotal + benefitEdiTotal, totalYearEnd,
     };
-  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, ancillaryRateOverrides]);
+  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, ancillaryRateOverrides, pytd, benefitEdi]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -416,7 +434,7 @@ export default function PayrollQuoteCalculator() {
                               />
                               <div className="flex-1 min-w-0">
                                 <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
-                                <span className="block text-[10px] text-slate-400">{formatMoney(svc.pepm)}/emp per payroll{svc.minimum > 0 ? ` (Min ${formatMoney(svc.minimum)})` : ''}</span>
+                                <span className="block text-[10px] text-slate-400">{svc.monthlyBilling ? `${formatMoney(svc.monthlyPerUser)}/user/month (billed monthly)` : `${formatMoney(svc.pepm)}/emp per payroll${svc.minimum > 0 ? ` (Min ${formatMoney(svc.minimum)})` : ''}`}</span>
                               </div>
                             </label>
                             {selectedAncillary[svc.id] && (
@@ -785,7 +803,7 @@ export default function PayrollQuoteCalculator() {
                   );
                 })}
 
-                {/* State Tax ID Application Card */}
+                {/* State Tax ID Application (Per Agency) Card */}
                 <div className={`rounded-2xl border transition-all duration-200 ${
                   stateTaxId.enabled
                     ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
@@ -802,7 +820,7 @@ export default function PayrollQuoteCalculator() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-brand-navy">State Tax ID Application</h3>
+                        <h3 className="font-bold text-brand-navy">State Tax ID Application (Per Agency)</h3>
                         <p className="text-xs text-slate-400 mt-0.5">State tax ID registration on behalf of client — $250 per ID</p>
                       </div>
                     </div>
@@ -824,6 +842,122 @@ export default function PayrollQuoteCalculator() {
                           </div>
                           <span className="text-sm font-bold text-brand-navy">
                             {formatMoney(stateTaxIdTotal)}
+                            <span className="text-xs font-normal text-brand-navy/60 ml-1">one-time</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Payroll Year-to-Date Loading (PYTD) Card */}
+                <div className={`rounded-2xl border transition-all duration-200 ${
+                  pytd.enabled
+                    ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
+                    : 'border-stone-200 bg-white hover:border-stone-300 shadow-sm'
+                }`}>
+                  <div className="p-5 flex justify-between items-start">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="pt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={pytd.enabled}
+                          onChange={() => setPytd(prev => ({ ...prev, enabled: !prev.enabled }))}
+                          className="w-5 h-5 rounded cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-brand-navy">Payroll Year-to-Date Loading (PYTD)</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Historical YTD load — $150/hr + $0.10 per pay statement</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {pytd.enabled && (
+                    <div className="px-5 pb-5 animate-fade-up">
+                      <div className="ml-8 space-y-2">
+                        <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-brand-navy/70 font-medium">Estimated Hours ($150/hr)</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.25"
+                              value={pytd.hours}
+                              onChange={(e) => setPytd(prev => ({ ...prev, hours: parseFloat(e.target.value) || 0 }))}
+                              className="w-20 text-center text-sm border border-stone-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                            />
+                          </div>
+                          <span className="text-xs font-semibold text-brand-navy">
+                            {formatMoney(150 * (parseFloat(pytd.hours) || 0))}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-brand-navy/70 font-medium">Pay Statements ($0.10 ea)</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={pytd.statements}
+                              onChange={(e) => setPytd(prev => ({ ...prev, statements: parseInt(e.target.value) || 0 }))}
+                              className="w-20 text-center text-sm border border-stone-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                            />
+                          </div>
+                          <span className="text-xs font-semibold text-brand-navy">
+                            {formatMoney(0.10 * (parseInt(pytd.statements) || 0))}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-stone-200 pt-2 px-3">
+                          <span className="text-xs font-bold text-brand-navy uppercase tracking-wider">Total</span>
+                          <span className="text-sm font-bold text-brand-navy">
+                            {formatMoney(pytdTotal)}
+                            <span className="text-xs font-normal text-brand-navy/60 ml-1">one-time</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Benefit Integration (EDI) Card */}
+                <div className={`rounded-2xl border transition-all duration-200 ${
+                  benefitEdi.enabled
+                    ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
+                    : 'border-stone-200 bg-white hover:border-stone-300 shadow-sm'
+                }`}>
+                  <div className="p-5 flex justify-between items-start">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="pt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={benefitEdi.enabled}
+                          onChange={() => setBenefitEdi(prev => ({ ...prev, enabled: !prev.enabled }))}
+                          className="w-5 h-5 rounded cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-brand-navy">Benefit Integration (EDI)</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">$1,195 implementation for first feed + $995 for each additional feed</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {benefitEdi.enabled && (
+                    <div className="px-5 pb-5 animate-fade-up">
+                      <div className="ml-8">
+                        <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-brand-navy/70 font-medium">Number of Feeds</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={benefitEdi.feeds}
+                              onChange={(e) => setBenefitEdi(prev => ({ ...prev, feeds: parseInt(e.target.value) || 0 }))}
+                              className="w-16 text-center text-sm border border-stone-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-brand-navy">
+                            {formatMoney(benefitEdiTotal)}
                             <span className="text-xs font-normal text-brand-navy/60 ml-1">one-time</span>
                           </span>
                         </div>
@@ -990,7 +1124,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-3 pl-2">
                         <div className="font-bold text-slate-800">{svc.name}</div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
-                          {`Rate: ${formatMoney(costs.rates.pepm)}/emp`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}
+                          {`Rate: ${formatMoney(costs.rates.pepm)}/emp`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}{svc.monthlyBilling ? ' · Billed monthly' : ''}
                         </div>
                         {costs.isMinApplied && (
                           <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
@@ -1014,11 +1148,11 @@ export default function PayrollQuoteCalculator() {
                 })}
                 </>)}
 
-                {/* State Tax ID Application */}
+                {/* State Tax ID Application (Per Agency) */}
                 {stateTaxId.enabled && (
                   <tr className="text-sm border-t border-stone-100">
                     <td className="py-3 pl-2">
-                      <div className="font-bold text-slate-800">State Tax ID Application</div>
+                      <div className="font-bold text-slate-800">State Tax ID Application (Per Agency)</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
                         {stateTaxId.quantity} {parseInt(stateTaxId.quantity) === 1 ? 'ID' : 'IDs'} × $250
                       </div>
@@ -1027,6 +1161,44 @@ export default function PayrollQuoteCalculator() {
                     {!clientFacing && <td className="py-3 text-right text-slate-300">{'\u2014'}</td>}
                     <td className="py-3 text-right font-semibold text-slate-700 pr-2">
                       {formatMoney(stateTaxIdTotal)}
+                    </td>
+                  </tr>
+                )}
+
+                {/* Payroll Year-to-Date Loading (PYTD) */}
+                {pytd.enabled && pytdTotal > 0 && (
+                  <tr className="text-sm border-t border-stone-100">
+                    <td className="py-3 pl-2">
+                      <div className="font-bold text-slate-800">Payroll Year-to-Date Loading (PYTD)</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {(parseFloat(pytd.hours) || 0) > 0 && `${pytd.hours} hr × $150`}
+                        {(parseFloat(pytd.hours) || 0) > 0 && (parseInt(pytd.statements) || 0) > 0 && ' + '}
+                        {(parseInt(pytd.statements) || 0) > 0 && `${pytd.statements} statements × $0.10`}
+                      </div>
+                    </td>
+                    <td className="py-3 text-right text-slate-300">{'—'}</td>
+                    {!clientFacing && <td className="py-3 text-right text-slate-300">{'—'}</td>}
+                    <td className="py-3 text-right font-semibold text-slate-700 pr-2">
+                      {formatMoney(pytdTotal)}
+                    </td>
+                  </tr>
+                )}
+
+                {/* Benefit Integration (EDI) */}
+                {benefitEdi.enabled && benefitEdiTotal > 0 && (
+                  <tr className="text-sm border-t border-stone-100">
+                    <td className="py-3 pl-2">
+                      <div className="font-bold text-slate-800">Benefit Integration (EDI)</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {(parseInt(benefitEdi.feeds) || 0) === 1
+                          ? `1 feed × $1,195`
+                          : `1st feed $1,195 + ${(parseInt(benefitEdi.feeds) || 0) - 1} additional × $995`}
+                      </div>
+                    </td>
+                    <td className="py-3 text-right text-slate-300">{'—'}</td>
+                    {!clientFacing && <td className="py-3 text-right text-slate-300">{'—'}</td>}
+                    <td className="py-3 text-right font-semibold text-slate-700 pr-2">
+                      {formatMoney(benefitEdiTotal)}
                     </td>
                   </tr>
                 )}
