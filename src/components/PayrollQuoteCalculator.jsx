@@ -218,9 +218,10 @@ export default function PayrollQuoteCalculator() {
     return basePeriods / targetPeriods;
   };
 
-  const calculateModuleCost = (moduleKey, configSource = PRICING_CONFIG) => {
+  const calculateModuleCost = (moduleKey, configSource = PRICING_CONFIG, customEmpCount = null) => {
     const config = configSource[moduleKey];
     const multiplier = getMultiplier();
+    const empCount = customEmpCount !== null ? customEmpCount : employeeCount;
 
     const adjBase = (moduleKey === 'payroll' && payrollBaseOverride !== null)
       ? payrollBaseOverride
@@ -242,8 +243,8 @@ export default function PayrollQuoteCalculator() {
     // Expense Tracking uses a separate user count when provided
     const expenseUsers = (expenseUserCount !== '' && parseInt(expenseUserCount) > 0)
       ? parseInt(expenseUserCount)
-      : employeeCount;
-    const headcount = moduleKey === 'expense' ? expenseUsers : employeeCount;
+      : empCount;
+    const headcount = moduleKey === 'expense' ? expenseUsers : empCount;
 
     const rawCost = adjBase + (adjPepm * headcount);
     const basePer = Math.max(rawCost, adjMin);
@@ -257,7 +258,7 @@ export default function PayrollQuoteCalculator() {
     // Year-end (W-2 / ACA forms) uses W-2 count override when provided
     const w2Headcount = (w2Count !== '' && parseInt(w2Count) > 0)
       ? parseInt(w2Count)
-      : employeeCount;
+      : empCount;
 
     let yearEnd = 0;
     if (config.hasYearEnd) {
@@ -329,6 +330,74 @@ export default function PayrollQuoteCalculator() {
       totalSetup: totalSetup + stateTaxIdTotal + pytdTotal + benefitEdiTotal, totalYearEnd,
     };
   }, [selectedModules, selectedAncillary, employeeCount, w2Count, expenseUserCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, ancillaryRateOverrides, pytd, benefitEdi]);
+
+  // Total per-payroll at an arbitrary employee count (used for ±1 employee delta)
+  const totalPerPayrollAt = (empCount) => {
+    let total = 0;
+
+    if (sCorpMode) {
+      // S-Corp per-period is fixed and doesn't vary with employee count
+      const isQuarterlyBilling = frequency !== 'biweekly' && frequency !== 'weekly' && frequency !== 'semimonthly';
+      let perPeriod;
+      if (frequency === 'annual') perPeriod = 1000;
+      else if (isQuarterlyBilling) perPeriod = 250;
+      else perPeriod = 48 * (26 / FREQUENCIES[frequency].periods);
+      total = perPeriod + (additionalJurisdictions > 0 ? additionalJurisdictions * 10 : 0);
+    } else {
+      Object.keys(PRICING_CONFIG).forEach(key => {
+        if (selectedModules[key]) total += calculateModuleCost(key, PRICING_CONFIG, empCount).perPayroll;
+      });
+      Object.keys(ANCILLARY_PRICING).forEach(key => {
+        if (selectedAncillary[key]) total += calculateModuleCost(key, ANCILLARY_PRICING, empCount).perPayroll;
+      });
+    }
+
+    // Benefit EDI recurring (varies with employee count)
+    if (benefitEdi.enabled) {
+      const periods = FREQUENCIES[frequency].periods;
+      const multiplier = 26 / periods;
+      const baseRate = benefitEdi.cobraBundle ? 0.90 : 0.75;
+      const rate = baseRate * multiplier;
+      const min = 40 * multiplier;
+      total += Math.max(rate * empCount, min);
+    }
+
+    if (!sCorpMode) total = total * (1 - discountPercent / 100);
+    return total;
+  };
+
+  const perEmployeeDelta = {
+    up: totalPerPayrollAt(employeeCount + 1) - totals.finalPerPayroll,
+    down: employeeCount > 0 ? totals.finalPerPayroll - totalPerPayrollAt(employeeCount - 1) : 0,
+  };
+
+  // Collect annual (year-end) fees for display below the quote total
+  const annualFees = (() => {
+    const items = [];
+    if (sCorpMode) {
+      const sc = calculateSCorpCost();
+      if (sc.yearEnd > 0) {
+        items.push({
+          label: 'Annual W-2 Processing (billed in Jan)',
+          detail: `${formatMoney(150)} base + ${formatMoney(6.95)}/W-2`,
+          total: sc.yearEnd,
+        });
+      }
+    } else {
+      Object.values(PRICING_CONFIG).forEach(module => {
+        if (selectedModules[module.id] && module.hasYearEnd) {
+          const c = calculateModuleCost(module.id);
+          items.push({
+            label: module.yearEndName,
+            detail: `${formatMoney(module.yearEndBase)} base + ${formatMoney(module.yearEndPerItem)}/W-2`,
+            total: c.yearEnd,
+          });
+        }
+      });
+    }
+    const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
+    return { items, grandTotal };
+  })();
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -1273,9 +1342,6 @@ export default function PayrollQuoteCalculator() {
                             : `Base: ${formatMoney(sc.perPeriod)}/payroll`
                           }
                         </div>
-                        <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
-                          + Annual W-2 Processing (billed in Jan): {formatMoney(150)} base + {formatMoney(6.95)}/W-2 (Total: {formatMoney(sc.yearEnd)})
-                        </div>
                       </td>
                       <td className="py-4 text-right font-semibold text-slate-700">
                         {formatMoney(sc.perPeriod)}
@@ -1315,11 +1381,6 @@ export default function PayrollQuoteCalculator() {
                         {module.id === 'payroll' && additionalJurisdictions > 0 && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
                             + Additional Tax Jurisdictions: {additionalJurisdictions} × $10 = {formatMoney(additionalJurisdictions * 10)}/payroll
-                          </div>
-                        )}
-                        {module.hasYearEnd && (
-                          <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
-                            + {module.yearEndName}: {formatMoney(module.yearEndBase)} base + {formatMoney(module.yearEndPerItem)}/W-2 (Total: {formatMoney(costs.yearEnd)})
                           </div>
                         )}
                         {costs.isMinApplied && (
@@ -1503,9 +1564,48 @@ export default function PayrollQuoteCalculator() {
                     {formatMoney(totals.totalSetup)}
                   </td>
                 </tr>
+
+                {/* Per-employee delta caption */}
+                {(perEmployeeDelta.up > 0 || perEmployeeDelta.down > 0) && (
+                  <tr>
+                    <td colSpan={clientFacing ? 3 : 4} className="pb-3 pl-2 text-[10px] text-slate-500 italic">
+                      <span className="font-semibold text-slate-600 not-italic">Per-employee adjustment (approx.):</span>{' '}
+                      +{formatMoney(perEmployeeDelta.up)} per added employee
+                      {' / '}&minus;{formatMoney(perEmployeeDelta.down)} per terminated employee
+                      <span className="text-slate-400"> · per payroll</span>
+                    </td>
+                  </tr>
+                )}
               </tfoot>
             </table>
             </div>
+
+            {/* Annual Fees (Year-End) */}
+            {annualFees.items.length > 0 && (
+              <div className="mb-8 annual-fees-block">
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-stone-200">
+                  <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-widest">Annual Fees (Year-End Processing)</h3>
+                  <span className="text-[10px] text-slate-400 italic">Billed separately at year-end</span>
+                </div>
+                <div className="space-y-1.5">
+                  {annualFees.items.map((item, idx) => (
+                    <div key={idx} className="flex items-baseline justify-between text-sm">
+                      <div className="flex-1 pr-3">
+                        <div className="font-semibold text-slate-800">{item.label}</div>
+                        <div className="text-[10px] text-slate-400">{item.detail}</div>
+                      </div>
+                      <div className="font-semibold text-slate-700 whitespace-nowrap">{formatMoney(item.total)}</div>
+                    </div>
+                  ))}
+                  {annualFees.items.length > 1 && (
+                    <div className="flex items-baseline justify-between text-sm pt-2 mt-1 border-t border-stone-200">
+                      <div className="font-bold text-brand-navy">Total Annual Fees</div>
+                      <div className="font-bold text-brand-navy">{formatMoney(annualFees.grandTotal)}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* S-Corp: inline services on same page (print only merges, screen shows separately) */}
             {sCorpMode && clientFacing && (
