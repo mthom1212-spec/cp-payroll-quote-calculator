@@ -57,12 +57,25 @@ export default function PayrollQuoteCalculator() {
     ? (150 * (parseFloat(pytd.hours) || 0)) + (0.10 * (parseInt(pytd.statements) || 0))
     : 0;
 
-  const [benefitEdi, setBenefitEdi] = useState({ enabled: false, feeds: 1 });
+  const [benefitEdi, setBenefitEdi] = useState({ enabled: false, feeds: 1, cobraBundle: false });
   const benefitEdiTotal = (() => {
     if (!benefitEdi.enabled) return 0;
     const feeds = parseInt(benefitEdi.feeds) || 0;
     if (feeds <= 0) return 0;
     return 1195 + (995 * (feeds - 1));
+  })();
+  const benefitEdiRecurring = (() => {
+    if (!benefitEdi.enabled) return { perPayroll: 0, annual: 0, rate: 0, min: 0, isMinApplied: false, baseRate: 0 };
+    const periods = FREQUENCIES[frequency].periods;
+    const multiplier = 26 / periods;
+    const baseRate = benefitEdi.cobraBundle ? 0.90 : 0.75;
+    const rate = baseRate * multiplier;
+    const min = 40 * multiplier;
+    const rawCost = rate * employeeCount;
+    const perPayroll = Math.max(rawCost, min);
+    const isMinApplied = rawCost < min;
+    const annual = perPayroll * periods;
+    return { perPayroll, annual, rate, min, isMinApplied, baseRate };
   })();
 
   const [setupFees, setSetupFees] = useState(() => {
@@ -265,10 +278,12 @@ export default function PayrollQuoteCalculator() {
   const totals = useMemo(() => {
     if (sCorpMode) {
       const sc = calculateSCorpCost();
+      const subPP = sc.perPeriod + benefitEdiRecurring.perPayroll;
+      const subAn = sc.annual + benefitEdiRecurring.annual;
       return {
-        subtotalPerPayroll: sc.perPeriod, subtotalAnnual: sc.annual,
+        subtotalPerPayroll: subPP, subtotalAnnual: subAn,
         discountPerPayroll: 0, discountAnnual: 0,
-        finalPerPayroll: sc.perPeriod, finalAnnual: sc.annual,
+        finalPerPayroll: subPP, finalAnnual: subAn,
         totalSetup: sc.setup + stateTaxIdTotal + pytdTotal + benefitEdiTotal, totalYearEnd: sc.yearEnd,
         sCorpPeriodLabel: sc.periodLabel,
       };
@@ -297,6 +312,10 @@ export default function PayrollQuoteCalculator() {
         totalSetup += c.setup;
       }
     });
+
+    // Benefit EDI recurring fees
+    subtotalPerPayroll += benefitEdiRecurring.perPayroll;
+    subtotalAnnual += benefitEdiRecurring.annual;
 
     const discountPerPayroll = subtotalPerPayroll * (discountPercent / 100);
     const finalPerPayroll = subtotalPerPayroll - discountPerPayroll;
@@ -1128,14 +1147,39 @@ export default function PayrollQuoteCalculator() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-brand-navy">Benefit Integration (EDI)</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">$1,195 implementation for first feed + $995 for each additional feed</p>
+                        <p className="text-xs text-slate-400 mt-0.5">$0.75/emp per payroll ($40 min) + $1,195 first feed / $995 each additional</p>
                       </div>
                     </div>
                   </div>
 
                   {benefitEdi.enabled && (
                     <div className="px-5 pb-5 animate-fade-up">
-                      <div className="ml-8">
+                      <div className="ml-8 space-y-2">
+                        {/* COBRA Bundle Toggle */}
+                        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                          <span className="text-[11px] text-amber-700 font-medium">Bundle with COBRA ($0.90/emp)</span>
+                          <Toggle
+                            checked={benefitEdi.cobraBundle}
+                            onChange={() => setBenefitEdi(prev => ({ ...prev, cobraBundle: !prev.cobraBundle }))}
+                            label="Toggle COBRA bundle for Benefit EDI"
+                          />
+                        </div>
+
+                        {/* Recurring per-payroll preview */}
+                        <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
+                          <span className="text-[11px] text-brand-navy/70 font-medium">
+                            Recurring: {formatMoney(benefitEdiRecurring.baseRate)}/emp (Min {formatMoney(40)})
+                          </span>
+                          <span className="text-sm font-bold text-brand-navy">
+                            {formatMoney(benefitEdiRecurring.perPayroll)}
+                            <span className="text-xs font-normal text-brand-navy/60 ml-1">/ payroll</span>
+                            {benefitEdiRecurring.isMinApplied && (
+                              <span className="ml-2 text-[9px] bg-brand-gold/20 text-brand-goldDark px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Min</span>
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Implementation (one-time) */}
                         <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
                           <div className="flex items-center gap-3">
                             <span className="text-[11px] text-brand-navy/70 font-medium">Number of Feeds</span>
@@ -1376,20 +1420,36 @@ export default function PayrollQuoteCalculator() {
                 )}
 
                 {/* Benefit Integration (EDI) */}
-                {benefitEdi.enabled && benefitEdiTotal > 0 && (
+                {benefitEdi.enabled && (
                   <tr className="text-sm border-t border-stone-100">
                     <td className="py-3 pl-2">
-                      <div className="font-bold text-slate-800">Benefit Integration (EDI)</div>
+                      <div className="font-bold text-slate-800">Benefit Integration (EDI){benefitEdi.cobraBundle ? ' + COBRA Bundle' : ''}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
-                        {(parseInt(benefitEdi.feeds) || 0) === 1
-                          ? `1 feed × $1,195`
-                          : `1st feed $1,195 + ${(parseInt(benefitEdi.feeds) || 0) - 1} additional × $995`}
+                        {`Rate: ${formatMoney(benefitEdiRecurring.baseRate)}/emp (Min ${formatMoney(40)})`}
                       </div>
+                      {benefitEdiTotal > 0 && (
+                        <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
+                          + Implementation: {(parseInt(benefitEdi.feeds) || 0) === 1
+                            ? `1 feed × $1,195`
+                            : `1st feed $1,195 + ${(parseInt(benefitEdi.feeds) || 0) - 1} additional × $995`}
+                        </div>
+                      )}
+                      {benefitEdiRecurring.isMinApplied && (
+                        <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
+                          ★ Minimum Applied
+                        </span>
+                      )}
                     </td>
-                    <td className="py-3 text-right text-slate-300">{'—'}</td>
-                    {!clientFacing && <td className="py-3 text-right text-slate-300">{'—'}</td>}
+                    <td className="py-3 text-right font-semibold text-slate-700">
+                      {formatMoney(benefitEdiRecurring.perPayroll)}
+                    </td>
+                    {!clientFacing && (
+                      <td className="py-3 text-right text-slate-600">
+                        {formatMoney(benefitEdiRecurring.annual)}
+                      </td>
+                    )}
                     <td className="py-3 text-right font-semibold text-slate-700 pr-2">
-                      {formatMoney(benefitEdiTotal)}
+                      {benefitEdiTotal > 0 ? formatMoney(benefitEdiTotal) : '—'}
                     </td>
                   </tr>
                 )}
