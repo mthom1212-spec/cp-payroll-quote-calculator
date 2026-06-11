@@ -13,6 +13,8 @@ export default function PayrollQuoteCalculator() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const [employeeCount, setEmployeeCount] = useState(15);
+  const [w2Count, setW2Count] = useState('');
+  const [expenseUserCount, setExpenseUserCount] = useState('');
   const [frequency, setFrequency] = useState('biweekly');
   const [discountPercent, setDiscountPercent] = useState(0);
   const [clientFacing, setClientFacing] = useState(true);
@@ -96,7 +98,8 @@ export default function PayrollQuoteCalculator() {
     const trimmed = name.trim();
     if (!trimmed) return;
     const snapshot = {
-      clientName, quoteDate, employeeCount, frequency, discountPercent,
+      clientName, quoteDate, employeeCount, w2Count, expenseUserCount,
+      frequency, discountPercent,
       clientFacing, showRepInfo, repName, repPhone, repEmail,
       selectedModules, payrollBaseOverride, additionalJurisdictions,
       showAncillary, selectedAncillary, sCorpMode, sCorpSetup,
@@ -114,6 +117,8 @@ export default function PayrollQuoteCalculator() {
     if (s.clientName !== undefined) setClientName(s.clientName);
     if (s.quoteDate !== undefined) setQuoteDate(s.quoteDate);
     if (s.employeeCount !== undefined) setEmployeeCount(s.employeeCount);
+    if (s.w2Count !== undefined) setW2Count(s.w2Count);
+    if (s.expenseUserCount !== undefined) setExpenseUserCount(s.expenseUserCount);
     if (s.frequency !== undefined) setFrequency(s.frequency);
     if (s.discountPercent !== undefined) setDiscountPercent(s.discountPercent);
     if (s.clientFacing !== undefined) setClientFacing(s.clientFacing);
@@ -184,7 +189,10 @@ export default function PayrollQuoteCalculator() {
     const jurisdictionFee = additionalJurisdictions > 0 ? additionalJurisdictions * 10 : 0;
     perPeriod += jurisdictionFee;
     const annual = perPeriod * periodsPerYear;
-    const yearEnd = 150 + (6.95 * employeeCount);
+    const w2Headcount = (w2Count !== '' && parseInt(w2Count) > 0)
+      ? parseInt(w2Count)
+      : employeeCount;
+    const yearEnd = 150 + (6.95 * w2Headcount);
     const setup = sCorpSetup.included ? parseFloat(sCorpSetup.amount || 0) : 0;
 
     return { perPeriod, annual, yearEnd, setup, periodLabel };
@@ -218,7 +226,13 @@ export default function PayrollQuoteCalculator() {
       ? overrides.minimum * multiplier
       : config.minimum * multiplier;
 
-    const rawCost = adjBase + (adjPepm * employeeCount);
+    // Expense Tracking uses a separate user count when provided
+    const expenseUsers = (expenseUserCount !== '' && parseInt(expenseUserCount) > 0)
+      ? parseInt(expenseUserCount)
+      : employeeCount;
+    const headcount = moduleKey === 'expense' ? expenseUsers : employeeCount;
+
+    const rawCost = adjBase + (adjPepm * headcount);
     const basePer = Math.max(rawCost, adjMin);
     const isMinApplied = rawCost < adjMin;
 
@@ -227,9 +241,14 @@ export default function PayrollQuoteCalculator() {
       : 0;
     const perPayroll = basePer + jurisdictionFee;
 
+    // Year-end (W-2 / ACA forms) uses W-2 count override when provided
+    const w2Headcount = (w2Count !== '' && parseInt(w2Count) > 0)
+      ? parseInt(w2Count)
+      : employeeCount;
+
     let yearEnd = 0;
     if (config.hasYearEnd) {
-      yearEnd = config.yearEndBase + (config.yearEndPerItem * employeeCount);
+      yearEnd = config.yearEndBase + (config.yearEndPerItem * w2Headcount);
     }
 
     const annual = (perPayroll * FREQUENCIES[frequency].periods) + yearEnd;
@@ -290,7 +309,7 @@ export default function PayrollQuoteCalculator() {
       finalPerPayroll, finalAnnual,
       totalSetup: totalSetup + stateTaxIdTotal + pytdTotal + benefitEdiTotal, totalYearEnd,
     };
-  }, [selectedModules, selectedAncillary, employeeCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, ancillaryRateOverrides, pytd, benefitEdi]);
+  }, [selectedModules, selectedAncillary, employeeCount, w2Count, expenseUserCount, frequency, discountPercent, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, ancillaryRateOverrides, pytd, benefitEdi]);
 
   const activeModuleCount = Object.values(selectedModules).filter(Boolean).length;
 
@@ -487,6 +506,20 @@ export default function PayrollQuoteCalculator() {
                     </div>
                   </div>
 
+                  {/* Approximate W-2s (optional override) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Approximate W-2s <span className="text-[10px] normal-case font-normal text-slate-400">(optional)</span></label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={w2Count}
+                      onChange={(e) => setW2Count(e.target.value)}
+                      placeholder={`Defaults to employee count (${employeeCount})`}
+                      className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">Override for clients with high turnover. Used for W-2 and ACA year-end fees.</p>
+                  </div>
+
                   {/* Discount */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Recurring Discount (%)</label>
@@ -604,6 +637,20 @@ export default function PayrollQuoteCalculator() {
                                     <span className="text-slate-400 italic">Waived</span>
                                   )}
                                 </div>
+                                {svc.id === 'expense' && (
+                                  <div className="ml-6 mt-1 flex items-center gap-2 text-[10px]">
+                                    <label className="text-brand-navy/70 font-semibold uppercase tracking-wider">Users</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={expenseUserCount}
+                                      onChange={(e) => setExpenseUserCount(e.target.value)}
+                                      placeholder={`${employeeCount}`}
+                                      className="w-16 text-center text-xs border border-stone-300 rounded-md px-1.5 py-0.5 focus:ring-1 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                                    />
+                                    <span className="text-slate-400 italic">Defaults to employee count</span>
+                                  </div>
+                                )}
                                 {(svc.id === 'retirement' || svc.id === 'onboarding') && (
                                   <div className="ml-6 mt-1 flex items-center gap-3 text-[10px]">
                                     <div className="flex items-center gap-1">
@@ -1183,7 +1230,7 @@ export default function PayrollQuoteCalculator() {
                           }
                         </div>
                         <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
-                          + Annual W-2 Processing (billed in Jan): {formatMoney(150)} base + {formatMoney(6.95)}/employee (Total: {formatMoney(sc.yearEnd)})
+                          + Annual W-2 Processing (billed in Jan): {formatMoney(150)} base + {formatMoney(6.95)}/W-2 (Total: {formatMoney(sc.yearEnd)})
                         </div>
                       </td>
                       <td className="py-4 text-right font-semibold text-slate-700">
@@ -1228,7 +1275,7 @@ export default function PayrollQuoteCalculator() {
                         )}
                         {module.hasYearEnd && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
-                            + {module.yearEndName}: {formatMoney(module.yearEndBase)} base + {formatMoney(module.yearEndPerItem)}/employee (Total: {formatMoney(costs.yearEnd)})
+                            + {module.yearEndName}: {formatMoney(module.yearEndBase)} base + {formatMoney(module.yearEndPerItem)}/W-2 (Total: {formatMoney(costs.yearEnd)})
                           </div>
                         )}
                         {costs.isMinApplied && (
@@ -1268,7 +1315,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-3 pl-2">
                         <div className="font-bold text-slate-800">{svc.name}</div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
-                          {`Rate: ${formatMoney(costs.rates.pepm)}/emp`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}{svc.monthlyBilling ? ' · Billed monthly' : ''}
+                          {`Rate: ${formatMoney(costs.rates.pepm)}/${svc.monthlyBilling ? 'user' : 'emp'}`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}{svc.monthlyBilling ? ' · Billed monthly' : ''}
                         </div>
                         {costs.isMinApplied && (
                           <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
