@@ -17,7 +17,7 @@ export default function PayrollQuoteCalculator() {
   const [w2Count, setW2Count] = useState('');
   const [count1099, setCount1099] = useState('');
   const [payrollYearEndRateOverride, setPayrollYearEndRateOverride] = useState(null);
-  const [payrollYearEndTotalOverride, setPayrollYearEndTotalOverride] = useState('');
+  const [annualFormsOverride, setAnnualFormsOverride] = useState('');
   const [expenseUserCount, setExpenseUserCount] = useState('');
   const [frequency, setFrequency] = useState('biweekly');
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -100,7 +100,7 @@ export default function PayrollQuoteCalculator() {
     if (!trimmed) return;
     const snapshot = {
       clientName, quoteDate, employeeCount, w2Count, count1099,
-      payrollYearEndRateOverride, payrollYearEndTotalOverride,
+      payrollYearEndRateOverride, annualFormsOverride,
       expenseUserCount, frequency, discountPercent, discountOptOut,
       clientFacing, showRepInfo, repName, repPhone, repEmail,
       selectedModules, payrollBaseOverride, additionalJurisdictions,
@@ -122,7 +122,7 @@ export default function PayrollQuoteCalculator() {
     if (s.w2Count !== undefined) setW2Count(s.w2Count);
     if (s.count1099 !== undefined) setCount1099(s.count1099);
     if (s.payrollYearEndRateOverride !== undefined) setPayrollYearEndRateOverride(s.payrollYearEndRateOverride);
-    if (s.payrollYearEndTotalOverride !== undefined) setPayrollYearEndTotalOverride(s.payrollYearEndTotalOverride);
+    if (s.annualFormsOverride !== undefined) setAnnualFormsOverride(s.annualFormsOverride);
     if (s.expenseUserCount !== undefined) setExpenseUserCount(s.expenseUserCount);
     if (s.frequency !== undefined) setFrequency(s.frequency);
     if (s.discountPercent !== undefined) setDiscountPercent(s.discountPercent);
@@ -176,7 +176,7 @@ export default function PayrollQuoteCalculator() {
   // Bundle current state for pricing-calc functions
   const calcState = () => ({
     employeeCount, w2Count, count1099, frequency,
-    payrollBaseOverride, payrollYearEndRateOverride, payrollYearEndTotalOverride,
+    payrollBaseOverride, payrollYearEndRateOverride, annualFormsOverride,
     additionalJurisdictions, expenseUserCount,
     ancillaryRateOverrides, setupFees,
     selectedModules, selectedAncillary,
@@ -195,7 +195,7 @@ export default function PayrollQuoteCalculator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       selectedModules, selectedAncillary, employeeCount, w2Count, count1099,
-      payrollYearEndRateOverride, payrollYearEndTotalOverride, expenseUserCount,
+      payrollYearEndRateOverride, annualFormsOverride, expenseUserCount,
       frequency, discountPercent, discountOptOut, setupFees, payrollBaseOverride,
       sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions,
       ancillaryRateOverrides, pytd, benefitEdi,
@@ -220,7 +220,8 @@ export default function PayrollQuoteCalculator() {
   // Collect annual (year-end) fees for display below the quote total
   const annualFees = (() => {
     const items = [];
-    const totalOverrideActive = payrollYearEndTotalOverride !== '' && payrollYearEndTotalOverride !== null;
+    const overrideActive = annualFormsOverride !== '' && annualFormsOverride !== null;
+    const overrideCount = parseInt(annualFormsOverride) || 0;
     if (sCorpMode) {
       const sc = calculateSCorpCost();
       if (sc.yearEnd > 0) {
@@ -228,11 +229,11 @@ export default function PayrollQuoteCalculator() {
         const forms1099 = parseInt(count1099) || 0;
         const rate = payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : 6.95;
         items.push({
-          label: forms1099 > 0
+          label: (overrideActive || forms1099 > 0)
             ? 'Annual W-2/1099 Processing (billed in Jan)'
             : 'Annual W-2 Processing (billed in Jan)',
-          detail: totalOverrideActive
-            ? 'Custom annual billing override (sales rep-supplied)'
+          detail: overrideActive
+            ? `${formatMoney(150)} base + ${formatMoney(rate)}/form (${overrideCount} annual forms, override)`
             : `${formatMoney(150)} base + ${formatMoney(rate)}/form` + (forms1099 > 0
               ? ` (${w2Head} W-2s + ${forms1099} 1099s)`
               : ` (${w2Head} W-2s)`),
@@ -248,11 +249,11 @@ export default function PayrollQuoteCalculator() {
             const forms1099 = parseInt(count1099) || 0;
             const rate = payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : module.yearEndPerItem;
             items.push({
-              label: forms1099 > 0
+              label: (overrideActive || forms1099 > 0)
                 ? 'Annual W-2/1099 Processing (billed in Jan)'
                 : 'Annual W-2 Processing (billed in Jan)',
-              detail: totalOverrideActive
-                ? 'Custom annual billing override (sales rep-supplied)'
+              detail: overrideActive
+                ? `${formatMoney(module.yearEndBase)} base + ${formatMoney(rate)}/form (${overrideCount} annual forms, override)`
                 : `${formatMoney(module.yearEndBase)} base + ${formatMoney(rate)}/form` + (forms1099 > 0
                   ? ` (${w2Head} W-2s + ${forms1099} 1099s)`
                   : ` (${w2Head} W-2s)`),
@@ -525,28 +526,27 @@ export default function PayrollQuoteCalculator() {
 
                   {/* W-2/1099 Annual Billing Override (optional) */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">W-2/1099 Annual Bill <span className="text-[10px] normal-case font-normal text-slate-400">(optional override)</span></label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-sm">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={payrollYearEndTotalOverride}
-                        onChange={(e) => setPayrollYearEndTotalOverride(e.target.value)}
-                        placeholder="Leave blank to auto-calculate"
-                        className="flex-1 border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                      />
-                      {payrollYearEndTotalOverride !== '' && (
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Annual W-2/1099 Forms <span className="text-[10px] normal-case font-normal text-slate-400">(optional override)</span></label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={annualFormsOverride}
+                      onChange={(e) => setAnnualFormsOverride(e.target.value)}
+                      placeholder="Leave blank to use W-2 + 1099 counts above"
+                      className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                    />
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-[11px] text-slate-400">Total annual W-2 + 1099 form count for year-end billing. Use for high-turnover clients whose annual form count exceeds per-payroll headcount.</p>
+                      {annualFormsOverride !== '' && (
                         <button
-                          onClick={() => setPayrollYearEndTotalOverride('')}
-                          className="text-[11px] text-brand-navy hover:text-brand-gold font-semibold"
+                          onClick={() => setAnnualFormsOverride('')}
+                          className="text-[11px] text-brand-navy hover:text-brand-gold font-semibold ml-2 flex-shrink-0"
                         >
                           Reset
                         </button>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Lump-sum override for the total W-2/1099 year-end bill. Use for high-turnover clients whose annual form count exceeds per-payroll headcount.</p>
                   </div>
 
                   {/* Discount */}

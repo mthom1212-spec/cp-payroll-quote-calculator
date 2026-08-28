@@ -127,17 +127,17 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   let yearEnd = 0;
   if (config.hasYearEnd) {
     if (moduleKey === 'payroll') {
-      const totalOverride = state.payrollYearEndTotalOverride;
-      if (totalOverride !== null && totalOverride !== undefined && totalOverride !== '') {
-        // Sales rep-supplied lump-sum annual billing (for high-turnover clients)
-        yearEnd = parseFloat(totalOverride) || 0;
-      } else {
-        const combined = w2Head + forms1099Current;
-        const rate = (payrollYearEndRateOverride !== null && payrollYearEndRateOverride !== undefined)
-          ? payrollYearEndRateOverride
-          : config.yearEndPerItem;
-        yearEnd = config.yearEndBase + (rate * combined);
-      }
+      // Annual form count: use override when set (high-turnover clients whose
+      // annual count exceeds per-payroll headcount), else W-2 + 1099 counts.
+      const override = state.annualFormsOverride;
+      const combined =
+        (override !== null && override !== undefined && override !== '')
+          ? (parseInt(override) || 0)
+          : (w2Head + forms1099Current);
+      const rate = (payrollYearEndRateOverride !== null && payrollYearEndRateOverride !== undefined)
+        ? payrollYearEndRateOverride
+        : config.yearEndPerItem;
+      yearEnd = config.yearEndBase + (rate * combined);
     } else {
       yearEnd = config.yearEndBase + (config.yearEndPerItem * w2Head);
     }
@@ -194,10 +194,12 @@ export const calculateSCorpCost = (state) => {
   const rate = (payrollYearEndRateOverride !== null && payrollYearEndRateOverride !== undefined)
     ? payrollYearEndRateOverride
     : SCORP_YEAR_END_PER_FORM;
-  const totalOverride = state.payrollYearEndTotalOverride;
-  const yearEnd = (totalOverride !== null && totalOverride !== undefined && totalOverride !== '')
-    ? (parseFloat(totalOverride) || 0)
-    : SCORP_YEAR_END_BASE + (rate * (w2Head + forms1099));
+  const override = state.annualFormsOverride;
+  const combined =
+    (override !== null && override !== undefined && override !== '')
+      ? (parseInt(override) || 0)
+      : (w2Head + forms1099);
+  const yearEnd = SCORP_YEAR_END_BASE + (rate * combined);
 
   const setup = sCorpSetup.included ? parseFloat(sCorpSetup.amount || 0) : 0;
 

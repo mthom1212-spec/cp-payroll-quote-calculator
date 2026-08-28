@@ -26,7 +26,7 @@ const baseState = (overrides = {}) => ({
   frequency: 'biweekly',
   payrollBaseOverride: null,
   payrollYearEndRateOverride: null,
-  payrollYearEndTotalOverride: null,
+  annualFormsOverride: '',
   additionalJurisdictions: 0,
   expenseUserCount: '',
   ancillaryRateOverrides: {},
@@ -229,54 +229,57 @@ describe('1099s in per-payroll headcount', () => {
 });
 
 // =============================================================
-// Payroll year-end total override (for high-turnover clients)
+// Annual W-2/1099 form count override (for high-turnover clients)
 // =============================================================
-describe('payrollYearEndTotalOverride', () => {
-  it('overrides the calculated year-end with a fixed total', () => {
+describe('annualFormsOverride (annual form count)', () => {
+  it('overrides the combined form count used in year-end calculation', () => {
+    // 250 annual forms × $6.95 + $150 base = $1,887.50
     const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
       w2Count: '200',
-      count1099: '50',
-      payrollYearEndTotalOverride: 1500,
+      count1099: '50', // ignored for year-end when override set
+      annualFormsOverride: 250,
     }));
-    expect(c.yearEnd).toBe(1500);
+    near(c.yearEnd, 150 + 6.95 * 250);
   });
 
-  it('takes precedence over rate override', () => {
+  it('override count is billed at the (also-overridable) rate', () => {
     const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      annualFormsOverride: 100,
       payrollYearEndRateOverride: 5.00,
-      payrollYearEndTotalOverride: 999,
     }));
-    expect(c.yearEnd).toBe(999);
+    near(c.yearEnd, 150 + 5.00 * 100);
   });
 
-  it('empty string / null falls back to calculated year-end', () => {
+  it('empty string / null falls back to w2Head + forms1099', () => {
     const cEmpty = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
-      payrollYearEndTotalOverride: '',
+      annualFormsOverride: '',
     }));
-    near(cEmpty.yearEnd, 150 + 6.95 * 15);
+    near(cEmpty.yearEnd, 150 + 6.95 * 15); // 15 W-2s + 0 1099s
     const cNull = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
-      payrollYearEndTotalOverride: null,
+      annualFormsOverride: null,
     }));
     near(cNull.yearEnd, 150 + 6.95 * 15);
   });
 
-  it('S-Corp: annual override replaces calculated year-end', () => {
+  it('S-Corp: annual form count override replaces the count', () => {
+    // 5 annual forms × $6.95 + $150 = $184.75
     const sc = calculateSCorpCost(baseState({
       sCorpMode: true,
       employeeCount: 1,
-      payrollYearEndTotalOverride: 300,
+      annualFormsOverride: 5,
     }));
-    expect(sc.yearEnd).toBe(300);
+    near(sc.yearEnd, 150 + 6.95 * 5);
   });
 
-  it('does not affect per-payroll or annual (only replaces yearEnd)', () => {
+  it('does not affect per-payroll or per-payroll annual', () => {
     const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
-      payrollYearEndTotalOverride: 5000,
+      annualFormsOverride: 500,
     }));
-    // per-payroll is unchanged
+    // per-payroll unchanged
     near(c.perPayroll, 48 + 2.70 * 15);
-    // annual = perPayroll × periods + yearEnd (which is now the override)
-    near(c.annual, (48 + 2.70 * 15) * 26 + 5000);
+    // annual = perPayroll × periods + overridden yearEnd
+    const expectedYearEnd = 150 + 6.95 * 500;
+    near(c.annual, (48 + 2.70 * 15) * 26 + expectedYearEnd);
   });
 });
 
