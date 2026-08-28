@@ -26,6 +26,7 @@ const baseState = (overrides = {}) => ({
   frequency: 'biweekly',
   payrollBaseOverride: null,
   payrollYearEndRateOverride: null,
+  payrollYearEndTotalOverride: null,
   additionalJurisdictions: 0,
   expenseUserCount: '',
   ancillaryRateOverrides: {},
@@ -163,6 +164,119 @@ describe('calculateModuleCost - payroll', () => {
   it('annual = perPayroll × periods + yearEnd', () => {
     const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState());
     near(c.annual, 88.50 * 26 + (150 + 6.95 * 15));
+  });
+});
+
+// =============================================================
+// 1099 contractors count toward per-payroll headcount
+// (payroll, TLM, HCM, Full Service — excluded: ACA, retirement, expense)
+// =============================================================
+describe('1099s in per-payroll headcount', () => {
+  it('payroll: 15 emp + 5 1099s = 20 headcount → $48 + $2.70×20 = $102', () => {
+    const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      count1099: '5',
+    }));
+    near(c.perPayroll, 48 + 2.70 * 20);
+  });
+
+  it('TLM: 25 emp + 10 1099s = 35 headcount → $2.70×35 = $94.50', () => {
+    const c = calculateModuleCost('tlm', PRICING_CONFIG, baseState({
+      employeeCount: 25,
+      count1099: '10',
+    }));
+    near(c.perPayroll, 2.70 * 35);
+  });
+
+  it('HCM: 30 emp + 5 1099s = 35 headcount → $2.70×35 = $94.50', () => {
+    const c = calculateModuleCost('hcm', PRICING_CONFIG, baseState({
+      employeeCount: 30,
+      count1099: '5',
+    }));
+    near(c.perPayroll, 2.70 * 35);
+  });
+
+  it('Full Service: 20 emp + 5 1099s = 25 → $4.50×25 = $112.50', () => {
+    const c = calculateModuleCost('fullService', PRICING_CONFIG, baseState({
+      employeeCount: 20,
+      count1099: '5',
+    }));
+    near(c.perPayroll, 4.50 * 25);
+  });
+
+  it('ACA (excluded): 1099s do NOT count in per-payroll', () => {
+    const c = calculateModuleCost('aca', PRICING_CONFIG, baseState({
+      count1099: '5', // ignored for ACA
+    }));
+    near(c.perPayroll, 0.60 * 15); // employees only
+  });
+
+  it('Retirement (excluded): 1099s do NOT count — still uses W-2 head', () => {
+    const c = calculateModuleCost('retirement', ANCILLARY_PRICING, baseState({
+      employeeCount: 100,
+      count1099: '20', // ignored for retirement
+    }));
+    near(c.perPayroll, 0.75 * 100); // W-2 head = 100 (well above $40 min)
+  });
+
+  it('Expense (excluded): 1099s do NOT count — uses expenseUserCount', () => {
+    const c = calculateModuleCost('expense', ANCILLARY_PRICING, baseState({
+      employeeCount: 10,
+      count1099: '5', // ignored for expense
+      frequency: 'monthly',
+    }));
+    near(c.perPayroll, 3 * 10); // expense users only
+  });
+});
+
+// =============================================================
+// Payroll year-end total override (for high-turnover clients)
+// =============================================================
+describe('payrollYearEndTotalOverride', () => {
+  it('overrides the calculated year-end with a fixed total', () => {
+    const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      w2Count: '200',
+      count1099: '50',
+      payrollYearEndTotalOverride: 1500,
+    }));
+    expect(c.yearEnd).toBe(1500);
+  });
+
+  it('takes precedence over rate override', () => {
+    const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      payrollYearEndRateOverride: 5.00,
+      payrollYearEndTotalOverride: 999,
+    }));
+    expect(c.yearEnd).toBe(999);
+  });
+
+  it('empty string / null falls back to calculated year-end', () => {
+    const cEmpty = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      payrollYearEndTotalOverride: '',
+    }));
+    near(cEmpty.yearEnd, 150 + 6.95 * 15);
+    const cNull = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      payrollYearEndTotalOverride: null,
+    }));
+    near(cNull.yearEnd, 150 + 6.95 * 15);
+  });
+
+  it('S-Corp: annual override replaces calculated year-end', () => {
+    const sc = calculateSCorpCost(baseState({
+      sCorpMode: true,
+      employeeCount: 1,
+      payrollYearEndTotalOverride: 300,
+    }));
+    expect(sc.yearEnd).toBe(300);
+  });
+
+  it('does not affect per-payroll or annual (only replaces yearEnd)', () => {
+    const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      payrollYearEndTotalOverride: 5000,
+    }));
+    // per-payroll is unchanged
+    near(c.perPayroll, 48 + 2.70 * 15);
+    // annual = perPayroll × periods + yearEnd (which is now the override)
+    near(c.annual, (48 + 2.70 * 15) * 26 + 5000);
   });
 });
 

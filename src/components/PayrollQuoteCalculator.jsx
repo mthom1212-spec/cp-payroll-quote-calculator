@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-
-const STORAGE_KEY = 'cpp-quote-builder:quotes';
 import { PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES, MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, formatMoney, formatDate } from '../constants/pricing';
+import * as pricingCalc from '../lib/pricing-calc';
 import { Icon } from './Icons';
 import Toggle from './Toggle';
+
+const STORAGE_KEY = 'cpp-quote-builder:quotes';
 
 export default function PayrollQuoteCalculator() {
   // --- State ---
@@ -16,6 +17,7 @@ export default function PayrollQuoteCalculator() {
   const [w2Count, setW2Count] = useState('');
   const [count1099, setCount1099] = useState('');
   const [payrollYearEndRateOverride, setPayrollYearEndRateOverride] = useState(null);
+  const [payrollYearEndTotalOverride, setPayrollYearEndTotalOverride] = useState('');
   const [expenseUserCount, setExpenseUserCount] = useState('');
   const [frequency, setFrequency] = useState('biweekly');
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -53,33 +55,16 @@ export default function PayrollQuoteCalculator() {
   const [sCorpSetup, setSCorpSetup] = useState({ included: true, amount: 750 });
 
   const [stateTaxId, setStateTaxId] = useState({ enabled: false, quantity: 1 });
-  const stateTaxIdTotal = stateTaxId.enabled ? 250 * (parseInt(stateTaxId.quantity) || 0) : 0;
+  const stateTaxIdTotal = pricingCalc.calculateStateTaxIdTotal(stateTaxId);
 
   const [pytd, setPytd] = useState({ enabled: false, hours: 0, statements: 0 });
-  const pytdTotal = pytd.enabled
-    ? (150 * (parseFloat(pytd.hours) || 0)) + (0.10 * (parseInt(pytd.statements) || 0))
-    : 0;
+  const pytdTotal = pricingCalc.calculatePytdTotal(pytd);
 
   const [benefitEdi, setBenefitEdi] = useState({ enabled: false, feeds: 1, cobraBundle: false });
-  const benefitEdiTotal = (() => {
-    if (!benefitEdi.enabled) return 0;
-    const feeds = parseInt(benefitEdi.feeds) || 0;
-    if (feeds <= 0) return 0;
-    return 1195 + (995 * (feeds - 1));
-  })();
-  const benefitEdiRecurring = (() => {
-    if (!benefitEdi.enabled) return { perPayroll: 0, annual: 0, rate: 0, min: 0, isMinApplied: false, baseRate: 0 };
-    const periods = FREQUENCIES[frequency].periods;
-    const multiplier = 26 / periods;
-    const baseRate = benefitEdi.cobraBundle ? 0.90 : 0.75;
-    const rate = baseRate * multiplier;
-    const min = 40 * multiplier;
-    const rawCost = rate * employeeCount;
-    const perPayroll = Math.max(rawCost, min);
-    const isMinApplied = rawCost < min;
-    const annual = perPayroll * periods;
-    return { perPayroll, annual, rate, min, isMinApplied, baseRate };
-  })();
+  const benefitEdiTotal = pricingCalc.calculateBenefitEdiOneTime(benefitEdi);
+  const benefitEdiRecurring = pricingCalc.calculateBenefitEdiRecurring({
+    benefitEdi, employeeCount, frequency,
+  });
 
   const [setupFees, setSetupFees] = useState(() => {
     const initial = {};
@@ -114,7 +99,8 @@ export default function PayrollQuoteCalculator() {
     const trimmed = name.trim();
     if (!trimmed) return;
     const snapshot = {
-      clientName, quoteDate, employeeCount, w2Count, count1099, payrollYearEndRateOverride,
+      clientName, quoteDate, employeeCount, w2Count, count1099,
+      payrollYearEndRateOverride, payrollYearEndTotalOverride,
       expenseUserCount, frequency, discountPercent, discountOptOut,
       clientFacing, showRepInfo, repName, repPhone, repEmail,
       selectedModules, payrollBaseOverride, additionalJurisdictions,
@@ -136,6 +122,7 @@ export default function PayrollQuoteCalculator() {
     if (s.w2Count !== undefined) setW2Count(s.w2Count);
     if (s.count1099 !== undefined) setCount1099(s.count1099);
     if (s.payrollYearEndRateOverride !== undefined) setPayrollYearEndRateOverride(s.payrollYearEndRateOverride);
+    if (s.payrollYearEndTotalOverride !== undefined) setPayrollYearEndTotalOverride(s.payrollYearEndTotalOverride);
     if (s.expenseUserCount !== undefined) setExpenseUserCount(s.expenseUserCount);
     if (s.frequency !== undefined) setFrequency(s.frequency);
     if (s.discountPercent !== undefined) setDiscountPercent(s.discountPercent);
@@ -186,246 +173,36 @@ export default function PayrollQuoteCalculator() {
     });
   };
 
-  // S-Corp cost calculation
-  const calculateSCorpCost = () => {
-    const isQuarterlyBilling = frequency !== 'biweekly' && frequency !== 'weekly' && frequency !== 'semimonthly';
-    let perPeriod, periodsPerYear, periodLabel;
+  // Bundle current state for pricing-calc functions
+  const calcState = () => ({
+    employeeCount, w2Count, count1099, frequency,
+    payrollBaseOverride, payrollYearEndRateOverride, payrollYearEndTotalOverride,
+    additionalJurisdictions, expenseUserCount,
+    ancillaryRateOverrides, setupFees,
+    selectedModules, selectedAncillary,
+    discountPercent, discountOptOut,
+    benefitEdi, stateTaxId, pytd,
+    sCorpMode, sCorpSetup,
+  });
 
-    if (frequency === 'annual') {
-      perPeriod = 1000;
-      periodsPerYear = 1;
-      periodLabel = 'year';
-    } else if (isQuarterlyBilling) {
-      perPeriod = 250;
-      periodsPerYear = 4;
-      periodLabel = 'quarter';
-    } else {
-      perPeriod = 48 * getMultiplier();
-      periodsPerYear = FREQUENCIES[frequency].periods;
-      periodLabel = 'payroll';
-    }
+  const getMultiplier = () => pricingCalc.getMultiplier(frequency);
+  const calculateSCorpCost = () => pricingCalc.calculateSCorpCost(calcState());
+  const calculateModuleCost = (moduleKey, configSource = PRICING_CONFIG, customEmpCount = null) =>
+    pricingCalc.calculateModuleCost(moduleKey, configSource, { ...calcState(), customEmpCount });
 
-    const jurisdictionFee = additionalJurisdictions > 0 ? additionalJurisdictions * 10 : 0;
-    perPeriod += jurisdictionFee;
-    const annual = perPeriod * periodsPerYear;
-    const w2Headcount = (w2Count !== '' && parseInt(w2Count) > 0)
-      ? parseInt(w2Count)
-      : employeeCount;
-    const forms1099 = parseInt(count1099) || 0;
-    const rate = payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : 6.95;
-    const yearEnd = 150 + (rate * (w2Headcount + forms1099));
-    const setup = sCorpSetup.included ? parseFloat(sCorpSetup.amount || 0) : 0;
+  const totals = useMemo(
+    () => pricingCalc.calculateTotals(calcState()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      selectedModules, selectedAncillary, employeeCount, w2Count, count1099,
+      payrollYearEndRateOverride, payrollYearEndTotalOverride, expenseUserCount,
+      frequency, discountPercent, discountOptOut, setupFees, payrollBaseOverride,
+      sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions,
+      ancillaryRateOverrides, pytd, benefitEdi,
+    ],
+  );
 
-    return { perPeriod, annual, yearEnd, setup, periodLabel };
-  };
-
-  // --- Calculations ---
-  const getMultiplier = () => {
-    const basePeriods = FREQUENCIES.biweekly.periods; // 26
-    const targetPeriods = FREQUENCIES[frequency].periods;
-    return basePeriods / targetPeriods;
-  };
-
-  const calculateModuleCost = (moduleKey, configSource = PRICING_CONFIG, customEmpCount = null) => {
-    const config = configSource[moduleKey];
-    const multiplier = getMultiplier();
-    const empCount = customEmpCount !== null ? customEmpCount : employeeCount;
-
-    const adjBase = (moduleKey === 'payroll' && payrollBaseOverride !== null)
-      ? payrollBaseOverride
-      : config.baseFee * multiplier;
-
-    const overrides = ancillaryRateOverrides[moduleKey];
-    let adjPepm;
-    if (config.monthlyBilling) {
-      adjPepm = (config.monthlyPerUser * 12) / FREQUENCIES[frequency].periods;
-    } else if (overrides?.pepm !== null && overrides?.pepm !== undefined) {
-      adjPepm = overrides.pepm * multiplier;
-    } else {
-      adjPepm = config.pepm * multiplier;
-    }
-    const adjMin = (overrides?.minimum !== null && overrides?.minimum !== undefined)
-      ? overrides.minimum * multiplier
-      : config.minimum * multiplier;
-
-    // Year-end (W-2 / 1099 / ACA forms) uses W-2 count override when provided
-    const w2Headcount = (w2Count !== '' && parseInt(w2Count) > 0)
-      ? parseInt(w2Count)
-      : empCount;
-
-    // Expense Tracking uses a separate user count when provided
-    const expenseUsers = (expenseUserCount !== '' && parseInt(expenseUserCount) > 0)
-      ? parseInt(expenseUserCount)
-      : empCount;
-
-    // Determine per-payroll headcount:
-    //  - Expense Tracking: user count
-    //  - Retirement (360 401k): W-2 count
-    //  - Everything else: employee count
-    let headcount;
-    if (moduleKey === 'expense') headcount = expenseUsers;
-    else if (moduleKey === 'retirement') headcount = w2Headcount;
-    else headcount = empCount;
-
-    const rawCost = adjBase + (adjPepm * headcount);
-    const basePer = Math.max(rawCost, adjMin);
-    const isMinApplied = rawCost < adjMin;
-
-    const jurisdictionFee = (moduleKey === 'payroll' && additionalJurisdictions > 0)
-      ? additionalJurisdictions * 10
-      : 0;
-    const perPayroll = basePer + jurisdictionFee;
-
-    // Year-end fee:
-    //  - Payroll: W-2s + 1099s at the (overridable) $6.95/form rate
-    //  - ACA: 1094-C/1095-C at its own per-employee rate, W-2 count only
-    let yearEnd = 0;
-    if (config.hasYearEnd) {
-      if (moduleKey === 'payroll') {
-        const forms1099 = parseInt(count1099) || 0;
-        const combinedForms = w2Headcount + forms1099;
-        const rate = payrollYearEndRateOverride !== null
-          ? payrollYearEndRateOverride
-          : config.yearEndPerItem;
-        yearEnd = config.yearEndBase + (rate * combinedForms);
-      } else {
-        yearEnd = config.yearEndBase + (config.yearEndPerItem * w2Headcount);
-      }
-    }
-
-    const annual = (perPayroll * FREQUENCIES[frequency].periods) + yearEnd;
-    const setup = setupFees[moduleKey]?.included
-      ? parseFloat(setupFees[moduleKey].amount || 0)
-      : 0;
-
-    return {
-      perPayroll, annual, setup, yearEnd, isMinApplied,
-      rates: { base: adjBase, pepm: adjPepm, min: adjMin },
-    };
-  };
-
-  const totals = useMemo(() => {
-    if (sCorpMode) {
-      const sc = calculateSCorpCost();
-      const subPP = sc.perPeriod + benefitEdiRecurring.perPayroll;
-      const subAn = sc.annual + benefitEdiRecurring.annual;
-      return {
-        subtotalPerPayroll: subPP, subtotalAnnual: subAn,
-        discountPerPayroll: 0, discountAnnual: 0,
-        finalPerPayroll: subPP, finalAnnual: subAn,
-        totalSetup: sc.setup + stateTaxIdTotal + pytdTotal + benefitEdiTotal, totalYearEnd: sc.yearEnd,
-        sCorpPeriodLabel: sc.periodLabel,
-      };
-    }
-
-    let discountablePP = 0;
-    let nonDiscountablePP = 0;
-    let discountableAn = 0;
-    let nonDiscountableAn = 0;
-    let totalSetup = 0;
-    let totalYearEnd = 0;
-
-    Object.keys(PRICING_CONFIG).forEach(key => {
-      if (selectedModules[key]) {
-        const c = calculateModuleCost(key);
-        if (discountOptOut[key]) {
-          nonDiscountablePP += c.perPayroll;
-          nonDiscountableAn += c.annual;
-        } else {
-          discountablePP += c.perPayroll;
-          discountableAn += c.annual;
-        }
-        totalSetup += c.setup;
-        totalYearEnd += c.yearEnd;
-      }
-    });
-
-    Object.keys(ANCILLARY_PRICING).forEach(key => {
-      if (selectedAncillary[key]) {
-        const c = calculateModuleCost(key, ANCILLARY_PRICING);
-        if (discountOptOut[key]) {
-          nonDiscountablePP += c.perPayroll;
-          nonDiscountableAn += c.annual;
-        } else {
-          discountablePP += c.perPayroll;
-          discountableAn += c.annual;
-        }
-        totalSetup += c.setup;
-      }
-    });
-
-    // Benefit EDI recurring fees (respect its own opt-out)
-    if (discountOptOut.benefitEdi) {
-      nonDiscountablePP += benefitEdiRecurring.perPayroll;
-      nonDiscountableAn += benefitEdiRecurring.annual;
-    } else {
-      discountablePP += benefitEdiRecurring.perPayroll;
-      discountableAn += benefitEdiRecurring.annual;
-    }
-
-    const subtotalPerPayroll = discountablePP + nonDiscountablePP;
-    const subtotalAnnual = discountableAn + nonDiscountableAn;
-    const discountPerPayroll = discountablePP * (discountPercent / 100);
-    const finalPerPayroll = subtotalPerPayroll - discountPerPayroll;
-    const discountAnnual = discountPerPayroll * FREQUENCIES[frequency].periods;
-    const finalAnnual = subtotalAnnual - discountAnnual;
-
-    return {
-      subtotalPerPayroll, subtotalAnnual,
-      discountPerPayroll, discountAnnual,
-      finalPerPayroll, finalAnnual,
-      totalSetup: totalSetup + stateTaxIdTotal + pytdTotal + benefitEdiTotal, totalYearEnd,
-    };
-  }, [selectedModules, selectedAncillary, employeeCount, w2Count, count1099, payrollYearEndRateOverride, expenseUserCount, frequency, discountPercent, discountOptOut, setupFees, payrollBaseOverride, sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, ancillaryRateOverrides, pytd, benefitEdi]);
-
-  // Total per-payroll at an arbitrary employee count (used for ±1 employee delta)
-  const totalPerPayrollAt = (empCount) => {
-    let discountable = 0;
-    let nonDiscountable = 0;
-
-    if (sCorpMode) {
-      // S-Corp per-period is fixed and doesn't vary with employee count
-      const isQuarterlyBilling = frequency !== 'biweekly' && frequency !== 'weekly' && frequency !== 'semimonthly';
-      let perPeriod;
-      if (frequency === 'annual') perPeriod = 1000;
-      else if (isQuarterlyBilling) perPeriod = 250;
-      else perPeriod = 48 * (26 / FREQUENCIES[frequency].periods);
-      const base = perPeriod + (additionalJurisdictions > 0 ? additionalJurisdictions * 10 : 0);
-      // S-Corp core doesn't participate in discount, so treat as non-discountable
-      nonDiscountable += base;
-    } else {
-      Object.keys(PRICING_CONFIG).forEach(key => {
-        if (selectedModules[key]) {
-          const pp = calculateModuleCost(key, PRICING_CONFIG, empCount).perPayroll;
-          if (discountOptOut[key]) nonDiscountable += pp;
-          else discountable += pp;
-        }
-      });
-      Object.keys(ANCILLARY_PRICING).forEach(key => {
-        if (selectedAncillary[key]) {
-          const pp = calculateModuleCost(key, ANCILLARY_PRICING, empCount).perPayroll;
-          if (discountOptOut[key]) nonDiscountable += pp;
-          else discountable += pp;
-        }
-      });
-    }
-
-    // Benefit EDI recurring (varies with employee count)
-    if (benefitEdi.enabled) {
-      const periods = FREQUENCIES[frequency].periods;
-      const multiplier = 26 / periods;
-      const baseRate = benefitEdi.cobraBundle ? 0.90 : 0.75;
-      const rate = baseRate * multiplier;
-      const min = 40 * multiplier;
-      const ediPP = Math.max(rate * empCount, min);
-      if (discountOptOut.benefitEdi) nonDiscountable += ediPP;
-      else discountable += ediPP;
-    }
-
-    // Discount applies only to discountable portion (skip in S-Corp mode)
-    const discountApplied = sCorpMode ? 0 : discountable * (discountPercent / 100);
-    return discountable + nonDiscountable - discountApplied;
-  };
+  const totalPerPayrollAt = (empCount) => pricingCalc.totalPerPayrollAt(empCount, calcState());
 
   const perEmployeeDelta = {
     up: totalPerPayrollAt(employeeCount + 1) - totals.finalPerPayroll,
@@ -443,6 +220,7 @@ export default function PayrollQuoteCalculator() {
   // Collect annual (year-end) fees for display below the quote total
   const annualFees = (() => {
     const items = [];
+    const totalOverrideActive = payrollYearEndTotalOverride !== '' && payrollYearEndTotalOverride !== null;
     if (sCorpMode) {
       const sc = calculateSCorpCost();
       if (sc.yearEnd > 0) {
@@ -453,9 +231,11 @@ export default function PayrollQuoteCalculator() {
           label: forms1099 > 0
             ? 'Annual W-2/1099 Processing (billed in Jan)'
             : 'Annual W-2 Processing (billed in Jan)',
-          detail: `${formatMoney(150)} base + ${formatMoney(rate)}/form` + (forms1099 > 0
-            ? ` (${w2Head} W-2s + ${forms1099} 1099s)`
-            : ` (${w2Head} W-2s)`),
+          detail: totalOverrideActive
+            ? 'Custom annual billing override (sales rep-supplied)'
+            : `${formatMoney(150)} base + ${formatMoney(rate)}/form` + (forms1099 > 0
+              ? ` (${w2Head} W-2s + ${forms1099} 1099s)`
+              : ` (${w2Head} W-2s)`),
           total: sc.yearEnd,
         });
       }
@@ -471,9 +251,11 @@ export default function PayrollQuoteCalculator() {
               label: forms1099 > 0
                 ? 'Annual W-2/1099 Processing (billed in Jan)'
                 : 'Annual W-2 Processing (billed in Jan)',
-              detail: `${formatMoney(module.yearEndBase)} base + ${formatMoney(rate)}/form` + (forms1099 > 0
-                ? ` (${w2Head} W-2s + ${forms1099} 1099s)`
-                : ` (${w2Head} W-2s)`),
+              detail: totalOverrideActive
+                ? 'Custom annual billing override (sales rep-supplied)'
+                : `${formatMoney(module.yearEndBase)} base + ${formatMoney(rate)}/form` + (forms1099 > 0
+                  ? ` (${w2Head} W-2s + ${forms1099} 1099s)`
+                  : ` (${w2Head} W-2s)`),
               total: c.yearEnd,
             });
           } else {
@@ -739,6 +521,32 @@ export default function PayrollQuoteCalculator() {
                       )}
                     </div>
                     <p className="text-[11px] text-slate-400 mt-1">Default $6.95/form. Adjust to discount the year-end W-2/1099 rate.</p>
+                  </div>
+
+                  {/* W-2/1099 Annual Billing Override (optional) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">W-2/1099 Annual Bill <span className="text-[10px] normal-case font-normal text-slate-400">(optional override)</span></label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400 text-sm">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={payrollYearEndTotalOverride}
+                        onChange={(e) => setPayrollYearEndTotalOverride(e.target.value)}
+                        placeholder="Leave blank to auto-calculate"
+                        className="flex-1 border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                      />
+                      {payrollYearEndTotalOverride !== '' && (
+                        <button
+                          onClick={() => setPayrollYearEndTotalOverride('')}
+                          className="text-[11px] text-brand-navy hover:text-brand-gold font-semibold"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">Lump-sum override for the total W-2/1099 year-end bill. Use for high-turnover clients whose annual form count exceeds per-payroll headcount.</p>
                   </div>
 
                   {/* Discount */}

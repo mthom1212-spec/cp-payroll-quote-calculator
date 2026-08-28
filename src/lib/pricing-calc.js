@@ -99,13 +99,19 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
 
   // --- Headcount routing ---
   const w2Head = getW2Headcount({ w2Count: state.w2Count, employeeCount: empCount });
+  const forms1099Current = getCount1099({ count1099: state.count1099 });
   const expenseUsers = getExpenseUserCount({
     expenseUserCount: state.expenseUserCount,
     employeeCount: empCount,
   });
+  // Modules where per-payroll headcount includes 1099 contractors being paid.
+  // Excluded: ACA (W-2 employees only), retirement (uses W-2 count),
+  // expense (its own user count).
+  const MODULES_WITH_1099 = ['payroll', 'tlm', 'hcm', 'fullService'];
   let headcount;
   if (moduleKey === 'expense') headcount = expenseUsers;
   else if (moduleKey === 'retirement') headcount = w2Head;
+  else if (MODULES_WITH_1099.includes(moduleKey)) headcount = empCount + forms1099Current;
   else headcount = empCount;
 
   const rawCost = adjBase + (adjPepm * headcount);
@@ -121,12 +127,17 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   let yearEnd = 0;
   if (config.hasYearEnd) {
     if (moduleKey === 'payroll') {
-      const forms1099 = getCount1099({ count1099: state.count1099 });
-      const combined = w2Head + forms1099;
-      const rate = (payrollYearEndRateOverride !== null && payrollYearEndRateOverride !== undefined)
-        ? payrollYearEndRateOverride
-        : config.yearEndPerItem;
-      yearEnd = config.yearEndBase + (rate * combined);
+      const totalOverride = state.payrollYearEndTotalOverride;
+      if (totalOverride !== null && totalOverride !== undefined && totalOverride !== '') {
+        // Sales rep-supplied lump-sum annual billing (for high-turnover clients)
+        yearEnd = parseFloat(totalOverride) || 0;
+      } else {
+        const combined = w2Head + forms1099Current;
+        const rate = (payrollYearEndRateOverride !== null && payrollYearEndRateOverride !== undefined)
+          ? payrollYearEndRateOverride
+          : config.yearEndPerItem;
+        yearEnd = config.yearEndBase + (rate * combined);
+      }
     } else {
       yearEnd = config.yearEndBase + (config.yearEndPerItem * w2Head);
     }
@@ -183,7 +194,10 @@ export const calculateSCorpCost = (state) => {
   const rate = (payrollYearEndRateOverride !== null && payrollYearEndRateOverride !== undefined)
     ? payrollYearEndRateOverride
     : SCORP_YEAR_END_PER_FORM;
-  const yearEnd = SCORP_YEAR_END_BASE + (rate * (w2Head + forms1099));
+  const totalOverride = state.payrollYearEndTotalOverride;
+  const yearEnd = (totalOverride !== null && totalOverride !== undefined && totalOverride !== '')
+    ? (parseFloat(totalOverride) || 0)
+    : SCORP_YEAR_END_BASE + (rate * (w2Head + forms1099));
 
   const setup = sCorpSetup.included ? parseFloat(sCorpSetup.amount || 0) : 0;
 
