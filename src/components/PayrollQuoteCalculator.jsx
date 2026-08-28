@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES, MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, formatMoney, formatDate } from '../constants/pricing';
 import * as pricingCalc from '../lib/pricing-calc';
-import { Icon } from './Icons';
+import { Icon, ModuleIcon } from './Icons';
 import Toggle from './Toggle';
+import Toast from './Toast';
 
 const STORAGE_KEY = 'cpp-quote-builder:quotes';
 
@@ -88,6 +89,8 @@ export default function PayrollQuoteCalculator() {
   });
   const [quoteNameInput, setQuoteNameInput] = useState('');
   const [showSaveInput, setShowSaveInput] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, kind = 'success') => setToast({ message, kind, id: Date.now() });
 
   useEffect(() => {
     try {
@@ -108,9 +111,11 @@ export default function PayrollQuoteCalculator() {
       stateTaxId, pytd, benefitEdi, ancillaryRateOverrides, setupFees,
       savedAt: new Date().toISOString(),
     };
+    const isUpdate = !!savedQuotes[trimmed];
     setSavedQuotes(prev => ({ ...prev, [trimmed]: snapshot }));
     setQuoteNameInput('');
     setShowSaveInput(false);
+    showToast(isUpdate ? `Updated "${trimmed}"` : `Saved "${trimmed}"`);
   };
 
   const loadQuote = (name) => {
@@ -144,6 +149,7 @@ export default function PayrollQuoteCalculator() {
     if (s.benefitEdi) setBenefitEdi(s.benefitEdi);
     if (s.ancillaryRateOverrides) setAncillaryRateOverrides(s.ancillaryRateOverrides);
     if (s.setupFees) setSetupFees(s.setupFees);
+    showToast(`Loaded "${name}"`, 'info');
   };
 
   const deleteQuote = (name) => {
@@ -152,6 +158,7 @@ export default function PayrollQuoteCalculator() {
       delete next[name];
       return next;
     });
+    showToast(`Deleted "${name}"`, 'destructive');
   };
 
   // S-Corp mode handler
@@ -343,10 +350,11 @@ export default function PayrollQuoteCalculator() {
             {/* Left: Quote Settings */}
             <div className="lg:col-span-4">
               <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 sticky top-6">
-                <h2 className="text-base font-bold text-brand-navy flex items-center gap-2 mb-5">
+                <h2 className="text-base font-bold text-brand-navy flex items-center gap-2 mb-2">
                   <Icon.Settings className="w-5 h-5" />
                   Quote Settings
                 </h2>
+                <div className="gold-hairline mb-5"></div>
 
                 <div className="space-y-4">
                   {/* Saved Quotes */}
@@ -828,27 +836,35 @@ export default function PayrollQuoteCalculator() {
                   </div>
                 </div>
 
-                {/* Quick Summary Card */}
-                <div className="mt-6 bg-brand-navy/5 rounded-xl p-4 border border-brand-navy/10">
-                  <div className="text-[11px] font-bold text-brand-navy uppercase tracking-wider mb-2">Quick Summary</div>
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Modules selected</span>
-                      <span className="font-semibold text-brand-navy">{activeModuleCount}</span>
+                {/* Quick Summary Card — hero total */}
+                <div className="mt-6 relative overflow-hidden rounded-2xl p-5 border border-brand-navy/20 bg-gradient-to-b from-brand-navy/5 to-transparent">
+                  <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 80% at 100% 0%, rgba(196,154,108,0.18), transparent 55%)' }} aria-hidden="true"></div>
+                  <div className="relative">
+                    <div className="text-[10px] font-bold text-brand-navy uppercase tracking-widest mb-1">
+                      {sCorpMode
+                        ? (totals.sCorpPeriodLabel === 'quarter' ? 'Total per Quarter' : totals.sCorpPeriodLabel === 'year' ? 'Total Annual' : 'Total per Payroll')
+                        : 'Total per Payroll'}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Per payroll</span>
-                      <span className="font-semibold text-brand-navy">{formatMoney(totals.finalPerPayroll)}</span>
+                    <div className="font-display font-bold text-brand-navy leading-none tabular-nums" style={{ fontSize: '2.5rem', letterSpacing: '-0.02em' }}>
+                      {formatMoney(totals.finalPerPayroll)}
                     </div>
-                    {!clientFacing && (
+                    <div className="mt-2 h-[3px] w-16 bg-brand-gold rounded-sm"></div>
+
+                    <div className="mt-4 pt-3 border-t border-brand-navy/10 space-y-1.5 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Annual estimate</span>
-                        <span className="font-semibold text-brand-navy">{formatMoney(totals.finalAnnual)}</span>
+                        <span className="text-slate-500 uppercase tracking-wider text-[10px] font-semibold">Modules</span>
+                        <span className="font-semibold text-brand-navy tabular-nums">{activeModuleCount}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">One-time setup</span>
-                      <span className="font-semibold text-brand-navy">{formatMoney(totals.totalSetup)}</span>
+                      {!clientFacing && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 uppercase tracking-wider text-[10px] font-semibold">Annual Est.</span>
+                          <span className="font-semibold text-brand-navy tabular-nums">{formatMoney(totals.finalAnnual)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 uppercase tracking-wider text-[10px] font-semibold">One-time Setup</span>
+                        <span className="font-semibold text-brand-navy tabular-nums">{formatMoney(totals.totalSetup)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -857,6 +873,17 @@ export default function PayrollQuoteCalculator() {
 
             {/* Right: Module Selector Cards */}
             <div className="lg:col-span-8">
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">
+                    {sCorpMode ? 'Owner-Only S-Corp Payroll' : 'Service Modules'}
+                  </h2>
+                  {!sCorpMode && (
+                    <span className="text-[10px] text-slate-400">{activeModuleCount} of {Object.keys(PRICING_CONFIG).length} selected</span>
+                  )}
+                </div>
+                <div className="gold-hairline"></div>
+              </div>
               <div className="space-y-4">
                 {Object.values(PRICING_CONFIG).map((module) => {
                   if (sCorpMode && module.id !== 'payroll') return null;
@@ -866,15 +893,15 @@ export default function PayrollQuoteCalculator() {
                   return (
                     <div
                       key={module.id}
-                      className={`rounded-2xl border transition-all duration-200 ${
+                      className={`module-card rounded-2xl border bg-white ${
                         isActive
-                          ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
-                          : 'border-stone-200 bg-white hover:border-stone-300 shadow-sm'
+                          ? 'module-card--selected border-brand-navy/40 shadow-md ring-2 ring-brand-navy/15'
+                          : 'border-stone-200 shadow-sm'
                       }`}
                     >
                       {/* Module Header */}
                       <div className="p-5 flex justify-between items-start">
-                        <div className="flex items-start gap-3 flex-1">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
                           <div className="pt-0.5">
                             <input
                               type="checkbox"
@@ -882,6 +909,11 @@ export default function PayrollQuoteCalculator() {
                               onChange={() => toggleModule(module.id)}
                               className="w-5 h-5 rounded cursor-pointer"
                             />
+                          </div>
+                          <div className={`w-10 h-10 flex-shrink-0 rounded-xl grid place-items-center transition-colors ${
+                            isActive ? 'bg-brand-navy/10 text-brand-navy' : 'bg-stone-100 text-slate-500'
+                          }`} aria-hidden="true">
+                            <ModuleIcon moduleId={module.id} className="w-5 h-5" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-brand-navy flex items-center gap-2 flex-wrap">
@@ -1048,11 +1080,20 @@ export default function PayrollQuoteCalculator() {
                   );
                 })}
 
+                {/* Additional Services section header */}
+                <div className="pt-4 mb-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">Additional Services</h2>
+                    <span className="text-[10px] text-slate-400">One-time & specialty fees</span>
+                  </div>
+                  <div className="gold-hairline"></div>
+                </div>
+
                 {/* State Tax ID Application (Per Agency) Card */}
-                <div className={`rounded-2xl border transition-all duration-200 ${
+                <div className={`module-card rounded-2xl border bg-white ${
                   stateTaxId.enabled
-                    ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
-                    : 'border-stone-200 bg-white hover:border-stone-300 shadow-sm'
+                    ? 'module-card--selected border-brand-navy/40 shadow-md ring-2 ring-brand-navy/15'
+                    : 'border-stone-200 shadow-sm'
                 }`}>
                   <div className="p-5 flex justify-between items-start">
                     <div className="flex items-start gap-3 flex-1">
@@ -1096,10 +1137,10 @@ export default function PayrollQuoteCalculator() {
                 </div>
 
                 {/* Payroll Year-to-Date Loading (PYTD) Card */}
-                <div className={`rounded-2xl border transition-all duration-200 ${
+                <div className={`module-card rounded-2xl border bg-white ${
                   pytd.enabled
-                    ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
-                    : 'border-stone-200 bg-white hover:border-stone-300 shadow-sm'
+                    ? 'module-card--selected border-brand-navy/40 shadow-md ring-2 ring-brand-navy/15'
+                    : 'border-stone-200 shadow-sm'
                 }`}>
                   <div className="p-5 flex justify-between items-start">
                     <div className="flex items-start gap-3 flex-1">
@@ -1165,10 +1206,10 @@ export default function PayrollQuoteCalculator() {
                 </div>
 
                 {/* Benefit Integration (EDI) Card */}
-                <div className={`rounded-2xl border transition-all duration-200 ${
+                <div className={`module-card rounded-2xl border bg-white ${
                   benefitEdi.enabled
-                    ? 'border-brand-navy/40 bg-white shadow-md ring-1 ring-brand-navy/10'
-                    : 'border-stone-200 bg-white hover:border-stone-300 shadow-sm'
+                    ? 'module-card--selected border-brand-navy/40 shadow-md ring-2 ring-brand-navy/15'
+                    : 'border-stone-200 shadow-sm'
                 }`}>
                   <div className="p-5 flex justify-between items-start">
                     <div className="flex items-start gap-3 flex-1">
@@ -1745,6 +1786,9 @@ export default function PayrollQuoteCalculator() {
           </section>
         )}
       </main>
+
+      {/* Toast notifications */}
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

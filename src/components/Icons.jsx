@@ -58,4 +58,57 @@ export const Icon = {
       <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
   ),
+  X: ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  ),
+};
+
+// --- Per-module icons (used on the module selector cards) ---
+export const ModuleIcon = ({ moduleId, className }) => {
+  const map = {
+    // Core modules
+    payroll: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <rect x="7.5" y="6" width="9" height="3" rx="0.5" />
+        <circle cx="8.5" cy="12.5" r="0.9" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12.5" r="0.9" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="12.5" r="0.9" fill="currentColor" stroke="none" />
+        <circle cx="8.5" cy="16" r="0.9" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="16" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+    tlm: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3.5 2" />
+      </svg>
+    ),
+    hcm: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="9" cy="9" r="3.2" />
+        <path d="M3.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6" />
+        <circle cx="16.5" cy="10" r="2.4" />
+        <path d="M14.7 15.2c2.6.4 4.8 2.6 4.8 4.8" />
+      </svg>
+    ),
+    aca: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M12 3l7 3v6c0 4.5-3.3 8.2-7 9-3.7-.8-7-4.5-7-9V6l7-3z" />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+    ),
+    fullService: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="3" y="7" width="18" height="13" rx="2" />
+        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <path d="M3 13h18" />
+      </svg>
+    ),
+  };
+  return map[moduleId] || null;
 };

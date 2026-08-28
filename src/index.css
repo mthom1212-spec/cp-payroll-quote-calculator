@@ -7,6 +7,45 @@ body {
   margin: 0;
 }
 
+/* Gold accent hairline used under section headers */
+.gold-hairline {
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(to right, #C49A6C 0%, #C49A6C 40px, #E7E5E4 40px, #E7E5E4 100%);
+}
+
+/* Toast slide-in */
+.toast-in {
+  animation: toast-in 320ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+@keyframes toast-in {
+  from { transform: translate(6px, 10px); opacity: 0; }
+  to   { transform: translate(0, 0);      opacity: 1; }
+}
+
+/* Module card polish */
+.module-card {
+  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+              box-shadow 180ms ease,
+              border-color 180ms ease;
+}
+.module-card:hover:not(.module-card--selected) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.05);
+}
+.module-card--selected:hover {
+  transform: translateY(-1px);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .toast-in,
+  .module-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Smooth toggle switch */
 .toggle-track {
   width: 40px;
