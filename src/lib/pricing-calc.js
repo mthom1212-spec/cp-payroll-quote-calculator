@@ -151,6 +151,16 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   return {
     perPayroll, annual, setup, yearEnd, isMinApplied,
     rates: { base: adjBase, pepm: adjPepm, min: adjMin },
+    headcount,
+    // Breakdown used by the UI to explain the count when it differs from
+    // employeeCount (retirement uses W-2s, expense uses user count, and
+    // payroll/tlm/hcm/fullService add 1099 contractors)
+    headcountBreakdown: {
+      employees: (moduleKey === 'expense' || moduleKey === 'retirement') ? 0 : empCount,
+      contractors: MODULES_WITH_1099.includes(moduleKey) ? forms1099Current : 0,
+      w2Employees: moduleKey === 'retirement' ? w2Head : 0,
+      users: moduleKey === 'expense' ? expenseUsers : 0,
+    },
   };
 };
 

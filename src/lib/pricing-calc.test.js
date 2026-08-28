@@ -553,6 +553,49 @@ describe('calculatePytdTotal', () => {
 });
 
 // =============================================================
+// calculateModuleCost returns headcount used in billing
+// =============================================================
+describe('calculateModuleCost returns headcount used', () => {
+  it('payroll: employees + 1099s', () => {
+    const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({
+      employeeCount: 20,
+      count1099: '5',
+    }));
+    expect(c.headcount).toBe(25);
+    expect(c.headcountBreakdown.employees).toBe(20);
+    expect(c.headcountBreakdown.contractors).toBe(5);
+  });
+
+  it('ACA: employees only (1099s excluded)', () => {
+    const c = calculateModuleCost('aca', PRICING_CONFIG, baseState({
+      employeeCount: 20,
+      count1099: '5',
+    }));
+    expect(c.headcount).toBe(20);
+    expect(c.headcountBreakdown.employees).toBe(20);
+    expect(c.headcountBreakdown.contractors).toBe(0);
+  });
+
+  it('retirement: uses W-2 count', () => {
+    const c = calculateModuleCost('retirement', ANCILLARY_PRICING, baseState({
+      employeeCount: 50,
+      w2Count: '200',
+    }));
+    expect(c.headcount).toBe(200);
+    expect(c.headcountBreakdown.w2Employees).toBe(200);
+  });
+
+  it('expense: uses user count', () => {
+    const c = calculateModuleCost('expense', ANCILLARY_PRICING, baseState({
+      employeeCount: 10,
+      expenseUserCount: '30',
+    }));
+    expect(c.headcount).toBe(30);
+    expect(c.headcountBreakdown.users).toBe(30);
+  });
+});
+
+// =============================================================
 // Aggregate totals with discount opt-out
 // =============================================================
 describe('calculateTotals - discount handling', () => {
