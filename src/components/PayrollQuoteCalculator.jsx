@@ -1335,8 +1335,8 @@ export default function PayrollQuoteCalculator() {
                         <div className="font-bold text-slate-800">{module.name}</div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
                           {costs.rates.base > 0
-                            ? `Rates: Base ${formatMoney(costs.rates.base)} + ${formatMoney(costs.rates.pepm)}/emp${formatHeadcount(costs)} (Min ${formatMoney(costs.rates.min)})`
-                            : `Rate: ${formatMoney(costs.rates.pepm)}/emp${formatHeadcount(costs)} (Min ${formatMoney(costs.rates.min)})`
+                            ? `Rates: Base ${formatMoney(costs.rates.base)} + ${formatMoney(costs.rates.pepm)}/emp${formatHeadcount(costs)}${costs.isMinApplied ? ` (Min ${formatMoney(costs.rates.min)})` : ''}`
+                            : `Rate: ${formatMoney(costs.rates.pepm)}/emp${formatHeadcount(costs)}${costs.isMinApplied ? ` (Min ${formatMoney(costs.rates.min)})` : ''}`
                           }
                         </div>
                         {module.id === 'payroll' && !sCorpMode && (
@@ -1386,7 +1386,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-3 pl-2">
                         <div className="font-bold text-slate-800">{svc.name}</div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
-                          {`Rate: ${formatMoney(costs.rates.pepm)}/${svc.monthlyBilling ? 'user' : 'emp'}${formatHeadcount(costs)}`}{costs.rates.min > 0 ? ` (Min ${formatMoney(costs.rates.min)})` : ''}{svc.monthlyBilling ? ' · Billed monthly' : ''}
+                          {`Rate: ${formatMoney(costs.rates.pepm)}/${svc.monthlyBilling ? 'user' : 'emp'}${formatHeadcount(costs)}`}{costs.isMinApplied ? ` (Min ${formatMoney(costs.rates.min)})` : ''}{svc.monthlyBilling ? ' · Billed monthly' : ''}
                         </div>
                         {costs.isMinApplied && (
                           <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
@@ -1452,7 +1452,7 @@ export default function PayrollQuoteCalculator() {
                     <td className="py-3 pl-2">
                       <div className="font-bold text-slate-800">Benefit Integration (EDI){benefitEdi.cobraBundle ? ' + COBRA Bundle' : ''}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
-                        {`Rate: ${formatMoney(benefitEdiRecurring.baseRate)}/emp × ${employeeCount} employees (Min ${formatMoney(40)})`}
+                        {`Rate: ${formatMoney(benefitEdiRecurring.baseRate)}/emp × ${employeeCount} employees`}{benefitEdiRecurring.isMinApplied ? ` (Min ${formatMoney(40)})` : ''}
                       </div>
                       {benefitEdiTotal > 0 && (
                         <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
