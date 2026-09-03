@@ -4,6 +4,7 @@ import * as pricingCalc from '../lib/pricing-calc';
 import { Icon, ModuleIcon } from './Icons';
 import Toggle from './Toggle';
 import Toast from './Toast';
+import SalesSummary from './SalesSummary';
 
 const STORAGE_KEY = 'cpp-quote-builder:quotes';
 
@@ -24,6 +25,8 @@ export default function PayrollQuoteCalculator() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountOptOut, setDiscountOptOut] = useState({});
   const [clientFacing, setClientFacing] = useState(true);
+  // View mode: 'client' = normal quote(s), 'sales' = internal sales summary
+  const [viewMode, setViewMode] = useState('client');
 
   const [showRepInfo, setShowRepInfo] = useState(false);
   const [repName, setRepName] = useState('');
@@ -105,7 +108,7 @@ export default function PayrollQuoteCalculator() {
       clientName, quoteDate, employeeCount, w2Count, count1099,
       payrollYearEndRateOverride, annualFormsOverride,
       expenseUserCount, frequency, discountPercent, discountOptOut,
-      clientFacing, showRepInfo, repName, repPhone, repEmail,
+      clientFacing, viewMode, showRepInfo, repName, repPhone, repEmail,
       selectedModules, payrollBaseOverride, additionalJurisdictions,
       showAncillary, selectedAncillary, sCorpMode, sCorpSetup,
       stateTaxId, pytd, benefitEdi, ancillaryRateOverrides, setupFees,
@@ -133,6 +136,7 @@ export default function PayrollQuoteCalculator() {
     if (s.discountPercent !== undefined) setDiscountPercent(s.discountPercent);
     if (s.discountOptOut !== undefined) setDiscountOptOut(s.discountOptOut);
     if (s.clientFacing !== undefined) setClientFacing(s.clientFacing);
+    if (s.viewMode !== undefined) setViewMode(s.viewMode);
     if (s.showRepInfo !== undefined) setShowRepInfo(s.showRepInfo);
     if (s.repName !== undefined) setRepName(s.repName);
     if (s.repPhone !== undefined) setRepPhone(s.repPhone);
@@ -587,15 +591,51 @@ export default function PayrollQuoteCalculator() {
 
                   <hr className="border-stone-100" />
 
-                  {/* Client Facing Toggle */}
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Client Facing</label>
-                    <Toggle
-                      checked={clientFacing}
-                      onChange={() => setClientFacing(prev => !prev)}
-                      label="Toggle client facing mode"
-                    />
+                  {/* View Mode: Client Quote vs Internal Sales Summary */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Output View</label>
+                    <div className="grid grid-cols-2 gap-1 bg-stone-100 rounded-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('client')}
+                        className={`text-xs font-semibold py-2 rounded-md transition-all ${
+                          viewMode === 'client'
+                            ? 'bg-white text-brand-navy shadow-sm'
+                            : 'text-slate-500 hover:text-brand-navy'
+                        }`}
+                      >
+                        Client Quote
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('sales')}
+                        className={`text-xs font-semibold py-2 rounded-md transition-all ${
+                          viewMode === 'sales'
+                            ? 'bg-brand-navy text-white shadow-sm'
+                            : 'text-slate-500 hover:text-brand-navy'
+                        }`}
+                      >
+                        Sales Summary
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {viewMode === 'client'
+                        ? 'Standard client-facing quote below.'
+                        : 'Internal revenue view — not for client distribution.'}
+                    </p>
                   </div>
+
+                  {/* Client Facing Toggle — only relevant in Client Quote view */}
+                  {viewMode === 'client' && (
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Client Facing</label>
+                      <Toggle
+                        checked={clientFacing}
+                        onChange={() => setClientFacing(prev => !prev)}
+                        label="Toggle client facing mode"
+                      />
+                    </div>
+                  )}
 
                   <hr className="border-stone-100" />
 
@@ -1281,6 +1321,26 @@ export default function PayrollQuoteCalculator() {
           </div>
         </section>
 
+        {/* Sales Summary (internal view) — replaces the client-facing quote when active */}
+        {viewMode === 'sales' && (
+          <SalesSummary
+            state={{
+              clientName, quoteDate, employeeCount, w2Count, count1099,
+              annualFormsOverride, payrollYearEndRateOverride,
+              expenseUserCount, frequency, discountPercent, discountOptOut,
+              selectedModules, selectedAncillary, setupFees,
+              payrollBaseOverride, additionalJurisdictions, ancillaryRateOverrides,
+              sCorpMode, sCorpSetup,
+              stateTaxId, pytd, benefitEdi,
+              showRepInfo, repName, repPhone, repEmail,
+            }}
+            onNotify={(msg) => showToast(msg)}
+          />
+        )}
+
+        {/* Client Quote (default view) — hidden when Sales Summary is active */}
+        {viewMode === 'client' && (
+        <>
         {/* Quote Preview / Print Sheet */}
         <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto print-container print-page-fill">
 
@@ -1784,6 +1844,8 @@ export default function PayrollQuoteCalculator() {
               </div>
             </div>
           </section>
+        )}
+        </>
         )}
       </main>
 
