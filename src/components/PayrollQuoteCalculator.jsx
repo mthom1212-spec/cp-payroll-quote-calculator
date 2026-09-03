@@ -10,6 +10,7 @@ import { Icon, ModuleIcon } from './Icons';
 import Toggle from './Toggle';
 import Toast from './Toast';
 import SalesSummary from './SalesSummary';
+import Tooltip from './Tooltip';
 
 const STORAGE_KEY = 'cpp-quote-builder:quotes';
 // Rep guide is a static HTML file in /public served alongside the app.
@@ -102,6 +103,17 @@ export default function PayrollQuoteCalculator() {
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [toast, setToast] = useState(null);
   const showToast = (message, kind = 'success') => setToast({ message, kind, id: Date.now() });
+
+  // First-run onboarding banner — dismissible, remembered in localStorage.
+  const [showOnboardBanner, setShowOnboardBanner] = useState(() => {
+    try {
+      return localStorage.getItem('cpp-quote-builder:onboard-dismissed') !== '1';
+    } catch { return true; }
+  });
+  const dismissOnboardBanner = () => {
+    setShowOnboardBanner(false);
+    try { localStorage.setItem('cpp-quote-builder:onboard-dismissed', '1'); } catch {}
+  };
 
   useEffect(() => {
     try {
@@ -334,33 +346,111 @@ export default function PayrollQuoteCalculator() {
   return (
     <div className="min-h-screen">
 
-      {/* App Header */}
-      <header className="bg-brand-navy text-white no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+      {/* App Header — gradient + crest + segmented output view + split print */}
+      <header className="header-gradient text-white no-print">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Crest ornament — small serif "C" mark */}
+            <div
+              aria-hidden="true"
+              className="w-9 h-9 rounded-lg grid place-items-center bg-white/10 border border-white/15 font-display font-bold text-brand-gold text-lg"
+            >
+              C
+            </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight font-display">Creative Planning Payroll</h1>
-              <p className="text-white/60 text-xs tracking-wide uppercase">Quote Builder</p>
+              <h1 className="text-lg font-bold tracking-tight font-display leading-tight">Creative Planning Payroll</h1>
+              <p className="text-white/60 text-[10px] tracking-[0.16em] uppercase font-semibold mt-0.5">Quote Builder</p>
             </div>
           </div>
+
           <div className="flex items-center gap-2">
+            {/* Output View segmented control */}
+            <div className="inline-flex bg-black/20 rounded-lg p-0.5 mr-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('client')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all relative ${
+                  viewMode === 'client'
+                    ? 'bg-white text-brand-navy shadow-sm'
+                    : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Client Quote
+                {viewMode === 'client' && (
+                  <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('sales')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all relative ${
+                  viewMode === 'sales'
+                    ? 'bg-white text-brand-navy shadow-sm'
+                    : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Sales Summary
+                {viewMode === 'sales' && (
+                  <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>
+                )}
+              </button>
+            </div>
+
             <a
               href={REP_GUIDE_URL}
               target="_blank"
               rel="noopener noreferrer"
               title="Open the rep guide"
               aria-label="Open the rep guide in a new tab"
-              className="flex items-center justify-center w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
             >
               <Icon.Help className="w-5 h-5" />
             </a>
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm"
-            >
-              <Icon.Printer />
-              {viewMode === 'sales' ? 'Print Sales Summary' : 'Print Quote'}
-            </button>
+
+            {/* Split print button */}
+            <div className="inline-flex shadow-sm">
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-4 py-2 rounded-l-lg font-semibold text-sm transition-colors border-r border-brand-goldDark/40"
+              >
+                <Icon.Printer />
+                {viewMode === 'sales' ? 'Print Summary' : 'Print Quote'}
+              </button>
+              <div className="relative group">
+                <button
+                  className="flex items-center justify-center bg-brand-gold hover:bg-brand-goldDark text-white h-full px-2.5 rounded-r-lg font-semibold text-sm transition-colors"
+                  aria-label="More print options"
+                  aria-haspopup="true"
+                >
+                  <Icon.ChevronDown className="w-4 h-4" />
+                </button>
+                <div className="absolute right-0 top-full mt-1 min-w-[220px] bg-white border border-stone-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all z-40 p-1">
+                  <button
+                    onClick={() => { setViewMode(viewMode === 'sales' ? 'client' : 'sales'); }}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-stone-100 rounded-md flex items-center gap-2"
+                  >
+                    <span className="text-brand-navy">↕</span>
+                    Switch to {viewMode === 'sales' ? 'Client Quote' : 'Sales Summary'}
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-stone-100 rounded-md flex items-center gap-2"
+                  >
+                    <Icon.Printer className="w-4 h-4 text-brand-navy" />
+                    Print current view
+                  </button>
+                  <a
+                    href={REP_GUIDE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-stone-100 rounded-md flex items-center gap-2"
+                  >
+                    <Icon.Help className="w-4 h-4 text-brand-navy" />
+                    Open rep guide
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -371,9 +461,44 @@ export default function PayrollQuoteCalculator() {
         <section className="no-print mb-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {/* Left: Quote Settings */}
-            <div className="lg:col-span-4">
-              <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 sticky top-6">
+            {/* Left: Sticky sidebar (hero total + Quote Settings) */}
+            <div className="lg:col-span-4 lg:sticky lg:top-6 lg:self-start space-y-4">
+
+              {/* Hero Total — dark navy card with gold accent */}
+              <div className="relative overflow-hidden rounded-2xl shadow-warm-md text-white"
+                   style={{ background: 'linear-gradient(180deg, #004F71 0%, #003950 100%)', borderLeft: '3px solid #C49A6C' }}>
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 80% at 100% 0%, rgba(196,154,108,0.28), transparent 55%)' }} aria-hidden="true"></div>
+                <div className="relative p-5">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.18em] mb-1" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                    {sCorpMode
+                      ? (totals.sCorpPeriodLabel === 'quarter' ? 'Total per Quarter' : totals.sCorpPeriodLabel === 'year' ? 'Total Annual' : 'Total per Payroll')
+                      : 'Total per Payroll'}
+                  </div>
+                  <div className="font-display font-bold leading-none tabular-nums text-white" style={{ fontSize: '2.5rem', letterSpacing: '-0.02em' }}>
+                    {formatMoney(totals.finalPerPayroll)}
+                  </div>
+                  <div className="mt-2 h-[2px] w-10 rounded-sm" style={{ background: '#C49A6C' }}></div>
+
+                  <div className="mt-4 pt-3 space-y-1.5 text-xs" style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                    <div className="flex justify-between">
+                      <span className="uppercase tracking-wider text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Modules</span>
+                      <span className="font-semibold text-white tabular-nums">{activeModuleCount}</span>
+                    </div>
+                    {!clientFacing && (
+                      <div className="flex justify-between">
+                        <span className="uppercase tracking-wider text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Annual Est.</span>
+                        <span className="font-semibold text-white tabular-nums">{formatMoney(totals.finalAnnual)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="uppercase tracking-wider text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>One-time Setup</span>
+                      <span className="font-semibold text-white tabular-nums">{formatMoney(totals.totalSetup)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-warm-sm border border-stone-200 p-6">
                 <h2 className="text-base font-bold text-brand-navy flex items-center gap-2 mb-2">
                   <Icon.Settings className="w-5 h-5" />
                   Quote Settings
@@ -513,88 +638,7 @@ export default function PayrollQuoteCalculator() {
                     </div>
                   </div>
 
-                  {/* Approximate W-2s (optional override) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Approximate W-2s <span className="text-[10px] normal-case font-normal text-slate-400">(optional)</span></label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={w2Count}
-                      onChange={(e) => setW2Count(e.target.value)}
-                      placeholder={`Defaults to employee count (${employeeCount})`}
-                      className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                    />
-                    <p className="text-[11px] text-slate-400 mt-1">Override for clients with high turnover. Used for W-2, 1099, ACA, and 360° 401(k) fees.</p>
-                  </div>
-
-                  {/* Approximate 1099s (optional) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Approximate 1099s <span className="text-[10px] normal-case font-normal text-slate-400">(optional)</span></label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={count1099}
-                      onChange={(e) => setCount1099(e.target.value)}
-                      placeholder="Defaults to 0"
-                      className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                    />
-                    <p className="text-[11px] text-slate-400 mt-1">Combined with W-2s for year-end processing (billed together at same rate).</p>
-                  </div>
-
-                  {/* W-2/1099 Rate Override (optional) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">W-2/1099 Rate <span className="text-[10px] normal-case font-normal text-slate-400">(per form)</span></label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-sm">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.05"
-                        value={payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : PRICING_CONFIG.payroll.yearEndPerItem}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          setPayrollYearEndRateOverride(isNaN(val) ? null : val);
-                        }}
-                        className="flex-1 border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                      />
-                      {payrollYearEndRateOverride !== null && (
-                        <button
-                          onClick={() => setPayrollYearEndRateOverride(null)}
-                          className="text-[11px] text-brand-navy hover:text-brand-gold font-semibold"
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Default {formatMoney(PRICING_CONFIG.payroll.yearEndPerItem)}/form. Adjust to discount the year-end W-2/1099 rate.</p>
-                  </div>
-
-                  {/* W-2/1099 Annual Billing Override (optional) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Annual W-2/1099 Forms <span className="text-[10px] normal-case font-normal text-slate-400">(optional override)</span></label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={annualFormsOverride}
-                      onChange={(e) => setAnnualFormsOverride(e.target.value)}
-                      placeholder="Leave blank to use W-2 + 1099 counts above"
-                      className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                    />
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-[11px] text-slate-400">Total annual W-2 + 1099 form count for year-end billing. Use for high-turnover clients whose annual form count exceeds per-payroll headcount.</p>
-                      {annualFormsOverride !== '' && (
-                        <button
-                          onClick={() => setAnnualFormsOverride('')}
-                          className="text-[11px] text-brand-navy hover:text-brand-gold font-semibold ml-2 flex-shrink-0"
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Discount */}
+                  {/* Recurring Discount (pricing decision — kept alongside Client Details) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Recurring Discount (%)</label>
                     <input
@@ -606,44 +650,135 @@ export default function PayrollQuoteCalculator() {
                       onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)}
                       className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
                     />
-                    <p className="text-[11px] text-slate-400 mt-1">Applies to recurring per-payroll fees only, not setup.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Applies to recurring per-payroll fees only. Excluded modules show no <span className="text-emerald-600 font-bold">*</span> on the quote.</p>
                   </div>
+
+                  {/* Advanced & Overrides — collapsible group of rarely-touched fields */}
+                  <details className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 group" open={
+                    w2Count !== '' || count1099 !== '' || payrollYearEndRateOverride !== null || annualFormsOverride !== '' || sCorpMode
+                  }>
+                    <summary className="cursor-pointer list-none flex items-center gap-2 text-xs font-semibold text-brand-navy uppercase tracking-wider">
+                      <span className="text-brand-gold font-bold text-sm group-open:hidden">+</span>
+                      <span className="text-brand-gold font-bold text-sm hidden group-open:inline">−</span>
+                      <span>Advanced &amp; Overrides</span>
+                      <span className="ml-auto font-normal normal-case tracking-normal text-[10px] text-slate-400">turnover · rates · S-Corp</span>
+                    </summary>
+                    <div className="mt-3 pt-3 border-t border-dashed border-stone-300 space-y-3">
+
+                      {/* Approximate W-2s */}
+                      <div>
+                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          Approximate W-2s <span className="normal-case font-normal text-slate-400 ml-1">(optional)</span>
+                          <Tooltip>Use when the client's annual W-2 count exceeds current headcount — high-turnover shops, restaurants, seasonal. Feeds W-2, 1099, ACA, and 360° 401(k) fees.</Tooltip>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={w2Count}
+                          onChange={(e) => setW2Count(e.target.value)}
+                          placeholder={`Defaults to employee count (${employeeCount})`}
+                          className="w-full border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                        />
+                      </div>
+
+                      {/* Approximate 1099s */}
+                      <div>
+                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          Approximate 1099s <span className="normal-case font-normal text-slate-400 ml-1">(optional)</span>
+                          <Tooltip>1099 contractors add to per-payroll fees for Payroll, TLM, HCM, and Full Service. Combined with W-2s at year-end. Does not affect ACA or 401(k).</Tooltip>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={count1099}
+                          onChange={(e) => setCount1099(e.target.value)}
+                          placeholder="Defaults to 0"
+                          className="w-full border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                        />
+                      </div>
+
+                      {/* W-2/1099 Rate Override */}
+                      <div>
+                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          W-2/1099 Rate <span className="normal-case font-normal text-slate-400 ml-1">(per form)</span>
+                          <Tooltip>Default {formatMoney(PRICING_CONFIG.payroll.yearEndPerItem)}/form. Lower it to discount the year-end W-2/1099 rate for a competitive quote.</Tooltip>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 text-sm">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.05"
+                            value={payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : PRICING_CONFIG.payroll.yearEndPerItem}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              setPayrollYearEndRateOverride(isNaN(val) ? null : val);
+                            }}
+                            className="flex-1 border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                          />
+                          {payrollYearEndRateOverride !== null && (
+                            <button
+                              onClick={() => setPayrollYearEndRateOverride(null)}
+                              className="text-[10px] text-brand-navy hover:text-brand-gold font-semibold"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Annual W-2/1099 Forms Override */}
+                      <div>
+                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          Annual W-2/1099 Forms <span className="normal-case font-normal text-slate-400 ml-1">(override)</span>
+                          <Tooltip>Set when the client's total annual form count exceeds per-payroll headcount (heavy turnover). Applies to W-2, 1099, and ACA year-end fees.</Tooltip>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={annualFormsOverride}
+                            onChange={(e) => setAnnualFormsOverride(e.target.value)}
+                            placeholder="Blank = use W-2 + 1099 counts"
+                            className="flex-1 border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                          />
+                          {annualFormsOverride !== '' && (
+                            <button
+                              onClick={() => setAnnualFormsOverride('')}
+                              className="text-[10px] text-brand-navy hover:text-brand-gold font-semibold"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quote type: S-Corp switch (rarely used) */}
+                      <div className="bg-white border-l-2 border-brand-gold rounded-r px-3 py-2 mt-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center">
+                              Quote Type
+                              <Tooltip>Standard = multi-module quotes for most clients. S-Corp Owner-Only = flat-rate mode for solo-owner S-Corps that only need December payroll.</Tooltip>
+                            </div>
+                            <div className="text-sm font-semibold text-brand-navy mt-0.5">
+                              {sCorpMode ? 'S-Corp Owner-Only' : 'Standard'}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={toggleSCorpMode}
+                            className="text-[11px] font-semibold text-brand-goldDark hover:text-brand-gold transition-colors underline decoration-dotted underline-offset-2"
+                          >
+                            Switch to {sCorpMode ? 'Standard' : 'S-Corp'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
 
                   <hr className="border-stone-100" />
-
-                  {/* View Mode: Client Quote vs Internal Sales Summary */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Output View</label>
-                    <div className="grid grid-cols-2 gap-1 bg-stone-100 rounded-lg p-1">
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('client')}
-                        className={`text-xs font-semibold py-2 rounded-md transition-all ${
-                          viewMode === 'client'
-                            ? 'bg-white text-brand-navy shadow-sm'
-                            : 'text-slate-500 hover:text-brand-navy'
-                        }`}
-                      >
-                        Client Quote
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('sales')}
-                        className={`text-xs font-semibold py-2 rounded-md transition-all ${
-                          viewMode === 'sales'
-                            ? 'bg-brand-navy text-white shadow-sm'
-                            : 'text-slate-500 hover:text-brand-navy'
-                        }`}
-                      >
-                        Sales Summary
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      {viewMode === 'client'
-                        ? 'Standard client-facing quote below.'
-                        : 'Internal revenue view — not for client distribution.'}
-                    </p>
-                  </div>
 
                   {/* Client Facing Toggle — only relevant in Client Quote view */}
                   {viewMode === 'client' && (
@@ -698,10 +833,10 @@ export default function PayrollQuoteCalculator() {
 
                   <hr className="border-stone-100" />
 
-                  {/* Ancillary Services Toggle (hidden in S-Corp mode) */}
+                  {/* Recurring Add-ons Toggle (hidden in S-Corp mode) */}
                   {!sCorpMode && <div>
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ancillary Services</label>
+                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recurring Add-ons</label>
                       <Toggle
                         checked={showAncillary}
                         onChange={() => setShowAncillary(prev => !prev)}
@@ -853,86 +988,59 @@ export default function PayrollQuoteCalculator() {
                     )}
                   </div>}
 
-                  <hr className="border-stone-100" />
-
-                  {/* S-Corp Mode Toggle */}
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">S-Corp / Owner-Only</label>
-                      <Toggle
-                        checked={sCorpMode}
-                        onChange={toggleSCorpMode}
-                        label="Toggle S-Corp mode"
-                      />
-                    </div>
-                    {sCorpMode && (
-                      <div className="mt-3 space-y-2.5">
-                        <p className="text-[10px] text-slate-400 italic">Owner-only payroll — simplified pricing at $250/quarter (or $48/pay period bi-weekly).</p>
-                        <div>
-                          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Setup Fee</label>
-                          <div className="mt-1 flex items-center gap-2">
-                            <Toggle
-                              checked={sCorpSetup.included}
-                              onChange={() => setSCorpSetup(prev => ({ ...prev, included: !prev.included }))}
-                              label="Toggle S-Corp setup fee"
+                  {/* S-Corp Setup Fee — only shown when S-Corp mode is active (toggle is in Advanced) */}
+                  {sCorpMode && (
+                    <div className="bg-brand-gold/5 border-l-2 border-brand-gold rounded-r px-3 py-2.5">
+                      <p className="text-[10px] font-semibold text-brand-goldDark uppercase tracking-wider">S-Corp Setup Fee</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Toggle
+                          checked={sCorpSetup.included}
+                          onChange={() => setSCorpSetup(prev => ({ ...prev, included: !prev.included }))}
+                          label="Toggle S-Corp setup fee"
+                        />
+                        {sCorpSetup.included ? (
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-slate-400 text-sm">$</span>
+                            <input
+                              type="number"
+                              value={sCorpSetup.amount}
+                              onChange={(e) => setSCorpSetup(prev => ({ ...prev, amount: e.target.value }))}
+                              className="w-20 text-right text-sm border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
                             />
-                            {sCorpSetup.included ? (
-                              <div className="flex items-center gap-0.5">
-                                <span className="text-slate-400 text-sm">$</span>
-                                <input
-                                  type="number"
-                                  value={sCorpSetup.amount}
-                                  onChange={(e) => setSCorpSetup(prev => ({ ...prev, amount: e.target.value }))}
-                                  className="w-20 text-right text-sm border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
-                                />
-                              </div>
-                            ) : (
-                              <span className="text-xs text-slate-400 italic">Waived</span>
-                            )}
                           </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Quick Summary Card — hero total */}
-                <div className="mt-6 relative overflow-hidden rounded-2xl p-5 border border-brand-navy/20 bg-gradient-to-b from-brand-navy/5 to-transparent">
-                  <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 80% at 100% 0%, rgba(196,154,108,0.18), transparent 55%)' }} aria-hidden="true"></div>
-                  <div className="relative">
-                    <div className="text-[10px] font-bold text-brand-navy uppercase tracking-widest mb-1">
-                      {sCorpMode
-                        ? (totals.sCorpPeriodLabel === 'quarter' ? 'Total per Quarter' : totals.sCorpPeriodLabel === 'year' ? 'Total Annual' : 'Total per Payroll')
-                        : 'Total per Payroll'}
-                    </div>
-                    <div className="font-display font-bold text-brand-navy leading-none tabular-nums" style={{ fontSize: '2.5rem', letterSpacing: '-0.02em' }}>
-                      {formatMoney(totals.finalPerPayroll)}
-                    </div>
-                    <div className="mt-2 h-[3px] w-16 bg-brand-gold rounded-sm"></div>
-
-                    <div className="mt-4 pt-3 border-t border-brand-navy/10 space-y-1.5 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 uppercase tracking-wider text-[10px] font-semibold">Modules</span>
-                        <span className="font-semibold text-brand-navy tabular-nums">{activeModuleCount}</span>
-                      </div>
-                      {!clientFacing && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 uppercase tracking-wider text-[10px] font-semibold">Annual Est.</span>
-                          <span className="font-semibold text-brand-navy tabular-nums">{formatMoney(totals.finalAnnual)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 uppercase tracking-wider text-[10px] font-semibold">One-time Setup</span>
-                        <span className="font-semibold text-brand-navy tabular-nums">{formatMoney(totals.totalSetup)}</span>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Waived</span>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Right: Module Selector Cards */}
             <div className="lg:col-span-8">
+              {/* First-run onboarding banner (dismissible) */}
+              {showOnboardBanner && (
+                <div className="mb-4 flex items-start gap-3 rounded-xl border border-brand-gold/25 border-l-[3px] border-l-brand-gold bg-gradient-to-r from-brand-gold/10 to-transparent px-4 py-3 text-sm">
+                  <span className="text-xl leading-none pt-0.5" aria-hidden="true">📘</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-brand-navy">New to the Quote Builder?</span>
+                    {' '}
+                    <span className="text-slate-600">
+                      Click the <a href={REP_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="underline text-brand-navy hover:text-brand-gold font-medium">?</a> at the top for the quick guide — hidden features, overrides, and troubleshooting.
+                    </span>
+                  </div>
+                  <button
+                    onClick={dismissOnboardBanner}
+                    className="text-slate-400 hover:text-slate-600 font-bold text-lg leading-none flex-shrink-0"
+                    aria-label="Dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">
@@ -1140,11 +1248,11 @@ export default function PayrollQuoteCalculator() {
                   );
                 })}
 
-                {/* Additional Services section header */}
+                {/* One-Time & Specialty Fees section header */}
                 <div className="pt-4 mb-1">
                   <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">Additional Services</h2>
-                    <span className="text-[10px] text-slate-400">One-time & specialty fees</span>
+                    <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">One-Time &amp; Specialty Fees</h2>
+                    <span className="text-[10px] text-slate-400">Billed at onboarding or as-used</span>
                   </div>
                   <div className="gold-hairline"></div>
                 </div>
@@ -1506,7 +1614,7 @@ export default function PayrollQuoteCalculator() {
                 {!sCorpMode && activeAncillaryPricingCount > 0 && (
                   <tr>
                     <td colSpan={clientFacing ? 3 : 4} className="pt-4 pb-1 pl-2">
-                      <span className="text-[9px] font-bold text-brand-navy/60 uppercase tracking-widest">Ancillary Services</span>
+                      <span className="text-[9px] font-bold text-brand-navy/60 uppercase tracking-widest">Recurring Add-ons</span>
                     </td>
                   </tr>
                 )}

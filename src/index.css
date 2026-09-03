@@ -5,6 +5,41 @@
 body {
   font-family: 'DM Sans', system-ui, sans-serif;
   margin: 0;
+  background: #FAFAF7; /* warmer than pure stone-50 */
+}
+
+/* ---------- Design depth tokens (used inline via arbitrary values) ---------- */
+/* Warmer surfaces + navy-tinted shadows for a more considered look. */
+.shadow-warm-sm { box-shadow: 0 1px 2px rgba(0, 79, 113, 0.05); }
+.shadow-warm-md { box-shadow: 0 4px 12px rgba(0, 79, 113, 0.07), 0 2px 4px rgba(0, 79, 113, 0.04); }
+.shadow-warm-lg { box-shadow: 0 12px 28px rgba(0, 79, 113, 0.09), 0 4px 10px rgba(0, 79, 113, 0.05); }
+
+/* Header gradient — subtle diagonal navy depth */
+.header-gradient {
+  background: linear-gradient(135deg, #003950 0%, #004F71 55%, #006890 100%);
+  position: relative;
+}
+.header-gradient::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(to right, transparent 0%, #C49A6C 30%, #C49A6C 70%, transparent 100%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Ornamental section divider */
+.divider-orn {
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px 0;
+}
+.divider-orn::before,
+.divider-orn::after {
+  content: ""; flex: 1; height: 1px; background: #E7E5DF;
+}
+.divider-orn > span {
+  color: #C49A6C;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 16px; line-height: 1;
 }
 
 /* Gold accent hairline used under section headers */
