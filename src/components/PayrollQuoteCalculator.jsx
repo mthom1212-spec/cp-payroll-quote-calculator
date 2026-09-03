@@ -12,7 +12,9 @@ import Toast from './Toast';
 import SalesSummary from './SalesSummary';
 
 const STORAGE_KEY = 'cpp-quote-builder:quotes';
-const REP_GUIDE_URL = 'https://claude.ai/code/artifact/b7a68740-223d-40ae-ad1d-c3052a63952d';
+// Rep guide is a static HTML file in /public served alongside the app.
+// import.meta.env.BASE_URL resolves to the deployed base path (main or preview).
+const REP_GUIDE_URL = `${import.meta.env.BASE_URL}guide.html`;
 
 export default function PayrollQuoteCalculator() {
   // --- State ---

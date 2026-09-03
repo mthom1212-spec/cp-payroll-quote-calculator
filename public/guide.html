@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quote Builder Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy: #004F71;
+    --navy-light: #006890;
+    --gold: #C49A6C;
+    --gold-dark: #A8824F;
+    --ground: #FAFAF9;
+    --surface: #FFFFFF;
+    --surface-2: #F5F5F4;
+    --border: #E7E5E4;
+    --text: #1E293B;
+    --text-muted: #64748B;
+    --text-faint: #94A3B8;
+    --amber: #B45309;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy: #4FA3C9;
+      --navy-light: #6BB8DB;
+      --gold: #D4B08C;
+      --gold-dark: #C49A6C;
+      --ground: #0F1720;
+      --surface: #17212B;
+      --surface-2: #1E2A36;
+      --border: #263442;
+      --text: #E8EEF4;
+      --text-muted: #94A3B8;
+      --text-faint: #64748B;
+      --amber: #FBBF24;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--ground);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 32px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 780px; margin: 0 auto; }
+
+  /* Back-to-app bar */
+  .backbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 780px;
+    margin: 0 auto 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .backbar a.back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--navy);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 150ms;
+  }
+  .backbar a.back:hover { background: var(--surface-2); }
+  .backbar .brand {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700;
+    color: var(--navy);
+    font-size: 14px;
+  }
+
+  header.top { margin-bottom: 40px; text-align: left; }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--navy);
+    margin: 0 0 8px;
+  }
+  h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 60ch;
+  }
+  .gold-underline {
+    height: 3px;
+    width: 60px;
+    background: var(--gold);
+    margin: 16px 0 0;
+    border-radius: 2px;
+  }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .toc ol {
+    margin: 0; padding: 0; list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 20px;
+    counter-reset: toc;
+  }
+  @media (max-width: 620px) { .toc ol { grid-template-columns: 1fr; } }
+  .toc li { counter-increment: toc; font-size: 14px; }
+  .toc a { color: var(--text); text-decoration: none; display: block; padding: 3px 0; }
+  .toc a::before {
+    content: counter(toc) ". ";
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .toc a:hover { color: var(--navy); }
+
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    scroll-margin-top: 20px;
+  }
+  section h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0 0 4px;
+    color: var(--navy);
+    letter-spacing: -0.005em;
+  }
+  section .sub {
+    font-size: 13px;
+    color: var(--text-faint);
+    margin: 0 0 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+
+  p { margin: 0 0 12px; color: var(--text); }
+  section p:last-child { margin-bottom: 0; }
+
+  ul.tight, ol.tight { margin: 8px 0 12px; padding-left: 22px; }
+  ul.tight li, ol.tight li { margin-bottom: 5px; }
+  strong { color: var(--text); font-weight: 700; }
+
+  .tip, .warn, .note {
+    padding: 12px 14px 12px 16px;
+    border-radius: 10px;
+    margin: 12px 0;
+    font-size: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .tip { background: rgba(196, 154, 108, 0.10); border-left: 3px solid var(--gold); }
+  .warn { background: rgba(245, 158, 11, 0.10); border-left: 3px solid var(--amber); }
+  .note { background: var(--surface-2); border-left: 3px solid var(--text-faint); }
+  .tip strong, .warn strong, .note strong { color: var(--navy); }
+  .tip-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    flex-shrink: 0;
+    padding-top: 2px;
+    min-width: 34px;
+  }
+  .tip .tip-label { color: var(--gold-dark); }
+  .warn .tip-label { color: var(--amber); }
+  .note .tip-label { color: var(--text-muted); }
+
+  code, kbd {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.9em;
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+  kbd { border: 1px solid var(--border); box-shadow: 0 1px 0 var(--border); }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 12px 0;
+  }
+  @media (max-width: 560px) { .compare { grid-template-columns: 1fr; } }
+  .compare > div {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .compare h4 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--navy);
+  }
+  .compare ul { margin: 0; padding-left: 18px; font-size: 14px; }
+  .compare li { margin-bottom: 3px; }
+
+  details {
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  details:last-child { border-bottom: none; }
+  details summary {
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    outline: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before {
+    content: "＋";
+    color: var(--gold);
+    font-weight: 700;
+    width: 14px;
+    display: inline-block;
+  }
+  details[open] summary::before { content: "−"; }
+  details[open] summary { margin-bottom: 8px; }
+  details p { margin: 8px 0 4px 24px; font-size: 14px; }
+  details ul { margin: 6px 0 6px 40px; font-size: 14px; padding-left: 8px; }
+
+  footer.foot {
+    margin-top: 32px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12px;
+    max-width: 780px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="backbar">
+  <a href="./" class="back">← Back to Quote Builder</a>
+  <span class="brand">CPP Quote Builder</span>
+</div>
+
+<div class="page">
+  <header class="top">
+    <p class="eyebrow">CPP Quote Builder · Rep Guide</p>
+    <h1>The quick guide</h1>
+    <p class="lede">Everything a busy rep needs to build, save, and export a quote. Focus is on the non-obvious stuff — the day-to-day is already self-explanatory.</p>
+    <div class="gold-underline"></div>
+  </header>
+
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#basics">The 30-second quote</a></li>
+      <li><a href="#views">Client Quote vs Sales Summary</a></li>
+      <li><a href="#save">Saving &amp; loading quotes</a></li>
+      <li><a href="#hidden">Hidden features (worth knowing)</a></li>
+      <li><a href="#overrides">Overrides &amp; when to use them</a></li>
+      <li><a href="#scorp">S-Corp owner-only quotes</a></li>
+      <li><a href="#print">Printing &amp; exporting</a></li>
+      <li><a href="#faq">Troubleshooting FAQ</a></li>
+    </ol>
+  </div>
+
+  <section id="basics">
+    <h2>The 30-second quote</h2>
+    <p class="sub">Start here</p>
+    <ol class="tight">
+      <li>Enter <strong>Client Name</strong> and confirm the <strong>Pay Frequency</strong> and <strong>Total Employees</strong>.</li>
+      <li>Check the modules you want on the right (Payroll is on by default).</li>
+      <li>Scroll down to the quote — it updates live.</li>
+      <li>Click <strong>Print Quote</strong> at the top right to save as PDF or send to printer.</li>
+    </ol>
+    <div class="tip">
+      <span class="tip-label">Tip</span>
+      <div>Defaults are already set for the most common quote: <strong>bi-weekly, 15 employees, Payroll module on, Client Facing view</strong>. For a standard payroll-only quote, you can just change the client name + employee count and you're done in under 30 seconds.</div>
+    </div>
+  </section>
+
+  <section id="views">
+    <h2>Client Quote vs Sales Summary</h2>
+    <p class="sub">Two output modes — pick the one that fits the moment</p>
+    <p>Find the <strong>Output View</strong> selector in the left sidebar (near the middle). It swaps what shows below the module cards.</p>
+    <div class="compare">
+      <div>
+        <h4>Client Quote</h4>
+        <ul>
+          <li>Client-friendly pricing sheet</li>
+          <li>Per-payroll fees prominent</li>
+          <li>Optional "Services Included" page</li>
+          <li>What you send to the customer</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Sales Summary</h4>
+        <ul>
+          <li>Internal revenue breakdown</li>
+          <li>Per-month + annual + Year 1 revenue</li>
+          <li>Downloadable CSV for Salesforce</li>
+          <li>Not for client distribution</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <span class="tip-label">Note</span>
+      <div>Inside Client Quote view there's a second toggle — <strong>Client Facing</strong>. Turn it off to reveal the "Annual Est." column for internal review. When it's on (the default), the client sees per-payroll only.</div>
+    </div>
+  </section>
+
+  <section id="save">
+    <h2>Saving &amp; loading quotes</h2>
+    <p class="sub">Top of the Quote Settings panel</p>
+    <ul class="tight">
+      <li><strong>Save Current</strong> — name a quote and it's stored in your browser. Save the same name twice to overwrite.</li>
+      <li><strong>Load</strong> — click Load next to any saved quote. Every field restores.</li>
+      <li><strong>Delete</strong> — the red Delete link removes a saved quote.</li>
+    </ul>
+    <div class="warn">
+      <span class="tip-label">Heads up</span>
+      <div>Saved quotes live only in your browser (localStorage). If you switch computers or clear browser data, they're gone. There's no shared server. Consider exporting important quotes as PDFs (Print Quote) for backup.</div>
+    </div>
+  </section>
+
+  <section id="hidden">
+    <h2>Hidden features (worth knowing)</h2>
+    <p class="sub">Things you have to reveal</p>
+    <ul class="tight">
+      <li><strong>Ancillary Services</strong> — a toggle in Quote Settings reveals the checklist: Performance Management, ATS, COBRA, 360° 401(k), LMS, Onboarding, Expense Tracking. Also has "usage-based" services that show as informational rates on the quote (E-Verify, Job Postings, WOTC, etc.).</li>
+      <li><strong>Additional Services cards</strong> on the right column — <strong>State Tax ID</strong>, <strong>PYTD Loading</strong>, and <strong>Benefit EDI</strong> are one-time / specialty fees. They live below the standard modules.</li>
+      <li><strong>Sales Rep Contact Info</strong> — toggle it on in Quote Settings and fill in your name/email/phone. It'll show on the client quote's "Ready to get started?" box in gold.</li>
+      <li><strong>Additional Tax Jurisdictions</strong> — inside the Payroll Processing card once selected. First state is free; each additional is $10/payroll.</li>
+      <li><strong>Do Not Apply Discount</strong> — a checkbox inside the 360° 401(k) card. Excludes that module from the recurring discount %. Discounted modules show a green <strong>*</strong> on the quote.</li>
+    </ul>
+  </section>
+
+  <section id="overrides">
+    <h2>Overrides &amp; when to use them</h2>
+    <p class="sub">Advanced knobs in Quote Settings</p>
+
+    <p><strong>Payroll Base Rate override</strong> (inside the Payroll module card):</p>
+    <ul class="tight">
+      <li>Default base rate is $48 bi-weekly, adjusted for other frequencies.</li>
+      <li>Override it for payroll-only clients where you want to charge more upfront.</li>
+      <li>The override is a fixed per-payroll amount — no frequency adjustment applied.</li>
+    </ul>
+
+    <p><strong>Approximate W-2s</strong>:</p>
+    <ul class="tight">
+      <li>Blank = uses the employee count for year-end fees and 360° 401(k) billing.</li>
+      <li>Set a number for high-turnover clients where W-2 count &gt; active headcount.</li>
+    </ul>
+
+    <p><strong>Approximate 1099s</strong>:</p>
+    <ul class="tight">
+      <li>Blank = 0.</li>
+      <li>Set a count for clients paying contractors — the 1099s add to per-payroll fees on Payroll, TLM, HCM, and Full Service, and combine with W-2s for year-end billing.</li>
+    </ul>
+
+    <p><strong>W-2/1099 Rate</strong>:</p>
+    <ul class="tight">
+      <li>Default is $6.95/form. Lower it to discount the year-end rate.</li>
+    </ul>
+
+    <p><strong>Annual W-2/1099 Forms</strong> (form count override):</p>
+    <ul class="tight">
+      <li>Blank = uses your W-2 + 1099 counts above.</li>
+      <li>Set a number when the client's annual form count is far above per-payroll headcount (heavy turnover, restaurants, seasonal). Applies to both W-2 Processing and ACA 1094-C/1095-C fees.</li>
+    </ul>
+
+    <p><strong>Ancillary Rate Overrides</strong>:</p>
+    <ul class="tight">
+      <li>360° 401(k) and Onboarding — expand the card to override the per-employee rate and minimum. Handy for competitive scenarios.</li>
+    </ul>
+
+    <div class="tip">
+      <span class="tip-label">Tip</span>
+      <div>Every override has a <strong>Reset</strong> link that returns to the default. Nothing is destructive — try things and reset if you don't like the result.</div>
+    </div>
+  </section>
+
+  <section id="scorp">
+    <h2>S-Corp owner-only quotes</h2>
+    <p class="sub">The specialty mode</p>
+    <p>Scroll to the bottom of Quote Settings and toggle <strong>S-Corp / Owner-Only Payroll</strong> on. This dramatically simplifies the tool for these edge quotes:</p>
+    <ul class="tight">
+      <li>All other modules hide — S-Corp only supports payroll.</li>
+      <li>Flat billing: <strong>$48/pay period bi-weekly</strong>, <strong>$250/quarter</strong> for monthly or quarterly frequencies, or <strong>$1,000/year</strong> annually.</li>
+      <li>Implementation defaults to $750 (adjustable).</li>
+      <li>Employee count defaults to 1 (the owner).</li>
+      <li>The Services Included page shows the S-Corp bundle by default.</li>
+    </ul>
+    <p>Toggle it off to return to the standard multi-module quote.</p>
+  </section>
+
+  <section id="print">
+    <h2>Printing &amp; exporting</h2>
+    <p class="sub">Two ways to get the quote off the screen</p>
+    <ul class="tight">
+      <li><strong>Print Quote</strong> (top right) — opens your browser's print dialog. Choose "Save as PDF" to send to the client. In Sales Summary view, the button relabels to <strong>Print Sales Summary</strong> and prints the internal version instead.</li>
+      <li><strong>Download CSV</strong> (Sales Summary view only) — click the gold button in the summary header. You'll get a file named <code>&lt;client-name&gt;-sales-summary-&lt;date&gt;.csv</code> that opens in Excel and pastes into Salesforce.</li>
+    </ul>
+    <div class="note">
+      <span class="tip-label">Note</span>
+      <div>For multi-module quotes, the Print output automatically flows to a second page for the "Services Included" section (client-facing mode). For S-Corp quotes, everything fits on one page.</div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h2>Troubleshooting FAQ</h2>
+    <p class="sub">Quick answers</p>
+
+    <details>
+      <summary>The minimum fee is applied but the client's per-employee math doesn't add up</summary>
+      <p>The module has a minimum floor. If <em>(rate × employees)</em> is below the minimum, the minimum is charged instead. Look for the <strong>★ Minimum Applied</strong> badge on the module card. The rate line on the quote also shows <strong>(Min $X)</strong> only when this is happening.</p>
+    </details>
+
+    <details>
+      <summary>My discount % isn't reducing the total by what I expected</summary>
+      <p>Discounts apply only to recurring per-payroll fees, not to one-time setup, year-end fees, or opted-out modules. Modules that ARE being discounted have a green <strong>*</strong> next to their per-payroll amount. If 360° 401(k) is selected, check whether the "Do Not Apply Discount" box is checked inside its card.</p>
+    </details>
+
+    <details>
+      <summary>I saved a quote but can't find it after switching computers</summary>
+      <p>Saved quotes are per-browser only. There's no shared server. Best practice: Print Quote and save the PDF wherever you keep client work. For frequently reused quote shapes, save them locally in each browser you use.</p>
+    </details>
+
+    <details>
+      <summary>The Sales Summary shows a Year 1 Revenue number — what's included?</summary>
+      <p>Year 1 Revenue = annual recurring (after discount) + year-end fees + all one-time setup. It's the total forecasted revenue for the first year of the account.</p>
+    </details>
+
+    <details>
+      <summary>How do 1099 contractors factor into the price?</summary>
+      <p>Setting the "Approximate 1099s" field:</p>
+      <ul>
+        <li>Adds to the per-payroll fee for Payroll, TLM, HCM, and Full Service (same $/emp rate applies)</li>
+        <li>Combines with W-2s at year-end for W-2/1099 processing</li>
+        <li>Does <strong>not</strong> affect ACA (only counts W-2 employees) or 360° 401(k) (only counts W-2 employees)</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>The client wants a bigger discount than the discount % allows for one module</summary>
+      <p>Use the <strong>rate override</strong> on that module instead. For payroll, use the Payroll Base Rate override (inside the Payroll card). For 360° 401(k) or Onboarding, expand the ancillary and use the Rate override. For year-end W-2/1099, use the W-2/1099 Rate field in Quote Settings.</p>
+    </details>
+
+    <details>
+      <summary>Where does the Additional Services section come from on the quote?</summary>
+      <p>Anything in "Additional Services" is an ancillary usage-based fee (like E-Verify $3.50/new hire) or a one-time specialty fee (State Tax ID, PYTD, Benefit EDI implementation). They appear on the client quote below the main pricing table.</p>
+    </details>
+
+    <details>
+      <summary>The quote looks weird after I toggle S-Corp mode</summary>
+      <p>S-Corp mode changes several defaults at once (employee count → 1, other modules hide, ancillary services hide). Toggle S-Corp off to return to the standard multi-module view. Any values you had before are not automatically restored — reload a saved quote if you had one, or reconfigure.</p>
+    </details>
+
+    <details>
+      <summary>How do I show my own contact info on the quote?</summary>
+      <p>In Quote Settings, toggle on <strong>Sales Rep Contact</strong>, then fill in your name / phone / email. It'll appear in gold on the "Ready to get started?" box at the bottom of the client-facing quote.</p>
+    </details>
+  </section>
+
+  <footer class="foot">
+    <p>CPP Quote Builder · Rep Guide · Bookmark this page for reference</p>
+    <p>Questions or updates needed? Ask Matt.</p>
+  </footer>
+</div>
+
+</body>
+</html>
