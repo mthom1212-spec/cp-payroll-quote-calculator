@@ -1,5 +1,23 @@
 // All baseline pricing is for Bi-Weekly (26 periods).
 // Rates are adjusted mathematically for other frequencies.
+
+// ---- Constants for one-time / specialty fees ---------------------
+// Single source of truth. Import these anywhere pricing text is displayed.
+export const STATE_TAX_ID_PER_ID = 250;
+export const PYTD_HOURLY = 150;
+export const PYTD_PER_STATEMENT = 0.10;
+export const BENEFIT_EDI_FIRST_FEED = 1195;
+export const BENEFIT_EDI_ADDL_FEED = 995;
+export const BENEFIT_EDI_MIN = 40;
+export const BENEFIT_EDI_RATE_STD = 0.75;
+export const BENEFIT_EDI_RATE_BUNDLE = 0.90;
+export const JURISDICTION_FEE_PER_LOCATION = 10;
+export const SCORP_YEAR_END_BASE = 150;
+export const SCORP_YEAR_END_PER_FORM = 6.95;
+export const SCORP_ANNUAL_FLAT = 1000;
+export const SCORP_QUARTERLY_FLAT = 250;
+export const SCORP_BIWEEKLY_BASE = 48;
+
 export const PRICING_CONFIG = {
   payroll: {
     id: 'payroll',

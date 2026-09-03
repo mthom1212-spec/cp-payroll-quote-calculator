@@ -46,6 +46,40 @@ body {
   }
 }
 
+/* Sales Summary print styles */
+@media print {
+  .sales-summary {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+  .sales-summary .sales-header {
+    padding: 0.75rem 1.5rem !important;
+    flex-shrink: 0 !important;
+  }
+  .sales-summary .sales-header * {
+    visibility: visible !important;
+  }
+  .sales-summary .quote-body {
+    padding: 1rem 1.5rem !important;
+  }
+  .sales-summary table {
+    font-size: 0.75rem !important;
+  }
+  .sales-summary table th,
+  .sales-summary table td {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+  /* Compact the totals grid on print */
+  .sales-summary .grid {
+    gap: 0.5rem !important;
+  }
+  .sales-summary .grid > div[class*="rounded-xl"] {
+    padding: 0.5rem 0.75rem !important;
+  }
+}
+
 /* Smooth toggle switch */
 .toggle-track {
   width: 40px;

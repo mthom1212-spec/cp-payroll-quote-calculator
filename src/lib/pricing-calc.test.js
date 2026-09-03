@@ -281,6 +281,23 @@ describe('annualFormsOverride (annual form count)', () => {
     const expectedYearEnd = 150 + 6.95 * 500;
     near(c.annual, (48 + 2.70 * 15) * 26 + expectedYearEnd);
   });
+
+  it('also applies to ACA 1094-C/1095-C year-end', () => {
+    const c = calculateModuleCost('aca', PRICING_CONFIG, baseState({
+      employeeCount: 15,
+      annualFormsOverride: 500,
+    }));
+    // ACA year-end = $150 base + $6.95 × 500 (override) instead of × 15 (W-2 head)
+    near(c.yearEnd, 150 + 6.95 * 500);
+  });
+
+  it('ACA falls back to W-2 headcount when override is not set', () => {
+    const c = calculateModuleCost('aca', PRICING_CONFIG, baseState({
+      employeeCount: 15,
+      w2Count: '20',
+    }));
+    near(c.yearEnd, 150 + 6.95 * 20);
+  });
 });
 
 // =============================================================

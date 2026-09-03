@@ -6,24 +6,43 @@
 // state fields a given function needs. Any function that reads state should
 // only touch fields it declares.
 
-import { PRICING_CONFIG, FREQUENCIES, ANCILLARY_PRICING } from '../constants/pricing';
+import {
+  PRICING_CONFIG,
+  FREQUENCIES,
+  ANCILLARY_PRICING,
+  STATE_TAX_ID_PER_ID,
+  PYTD_HOURLY,
+  PYTD_PER_STATEMENT,
+  BENEFIT_EDI_FIRST_FEED,
+  BENEFIT_EDI_ADDL_FEED,
+  BENEFIT_EDI_MIN,
+  BENEFIT_EDI_RATE_STD,
+  BENEFIT_EDI_RATE_BUNDLE,
+  JURISDICTION_FEE_PER_LOCATION,
+  SCORP_YEAR_END_BASE,
+  SCORP_YEAR_END_PER_FORM,
+  SCORP_ANNUAL_FLAT,
+  SCORP_QUARTERLY_FLAT,
+  SCORP_BIWEEKLY_BASE,
+} from '../constants/pricing';
 
-// ---------- Constants used by inline (non-config) fees ----------
-
-export const STATE_TAX_ID_PER_ID = 250;
-export const PYTD_HOURLY = 150;
-export const PYTD_PER_STATEMENT = 0.10;
-export const BENEFIT_EDI_FIRST_FEED = 1195;
-export const BENEFIT_EDI_ADDL_FEED = 995;
-export const BENEFIT_EDI_MIN = 40;
-export const BENEFIT_EDI_RATE_STD = 0.75;
-export const BENEFIT_EDI_RATE_BUNDLE = 0.90;
-export const JURISDICTION_FEE_PER_LOCATION = 10;
-export const SCORP_YEAR_END_BASE = 150;
-export const SCORP_YEAR_END_PER_FORM = 6.95;
-export const SCORP_ANNUAL_FLAT = 1000;
-export const SCORP_QUARTERLY_FLAT = 250;
-export const SCORP_BIWEEKLY_BASE = 48;
+// Re-export so existing test imports of these constants keep working
+export {
+  STATE_TAX_ID_PER_ID,
+  PYTD_HOURLY,
+  PYTD_PER_STATEMENT,
+  BENEFIT_EDI_FIRST_FEED,
+  BENEFIT_EDI_ADDL_FEED,
+  BENEFIT_EDI_MIN,
+  BENEFIT_EDI_RATE_STD,
+  BENEFIT_EDI_RATE_BUNDLE,
+  JURISDICTION_FEE_PER_LOCATION,
+  SCORP_YEAR_END_BASE,
+  SCORP_YEAR_END_PER_FORM,
+  SCORP_ANNUAL_FLAT,
+  SCORP_QUARTERLY_FLAT,
+  SCORP_BIWEEKLY_BASE,
+};
 
 // ---------- Core helpers ----------
 
@@ -126,20 +145,23 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   // --- Year-end ---
   let yearEnd = 0;
   if (config.hasYearEnd) {
+    // Annual form count override applies to any year-end module (payroll W-2s,
+    // ACA 1094-C/1095-C) since a high-turnover client's total annual forms
+    // exceed per-payroll headcount across all filings.
+    const override = state.annualFormsOverride;
+    const hasOverride = override !== null && override !== undefined && override !== '';
     if (moduleKey === 'payroll') {
-      // Annual form count: use override when set (high-turnover clients whose
-      // annual count exceeds per-payroll headcount), else W-2 + 1099 counts.
-      const override = state.annualFormsOverride;
-      const combined =
-        (override !== null && override !== undefined && override !== '')
-          ? (parseInt(override) || 0)
-          : (w2Head + forms1099Current);
+      const combined = hasOverride
+        ? (parseInt(override) || 0)
+        : (w2Head + forms1099Current);
       const rate = (payrollYearEndRateOverride !== null && payrollYearEndRateOverride !== undefined)
         ? payrollYearEndRateOverride
         : config.yearEndPerItem;
       yearEnd = config.yearEndBase + (rate * combined);
     } else {
-      yearEnd = config.yearEndBase + (config.yearEndPerItem * w2Head);
+      // Non-payroll year-end (ACA): use override if set, else W-2 head
+      const count = hasOverride ? (parseInt(override) || 0) : w2Head;
+      yearEnd = config.yearEndBase + (config.yearEndPerItem * count);
     }
   }
 

@@ -175,7 +175,7 @@ const csvEscape = (val) => {
   return s;
 };
 
-const downloadCsv = (state, items, totals) => {
+const downloadCsv = (state, items, totals, primaryLabel = 'Payroll') => {
   const rows = [];
 
   // Header block
@@ -199,7 +199,7 @@ const downloadCsv = (state, items, totals) => {
 
   // Line items
   rows.push(['LINE ITEMS']);
-  rows.push(['Module', 'Per Payroll', 'Per Month', 'Annual Recurring', 'Year-End Fees', 'One-Time Setup', 'Year 1 Revenue', 'Note']);
+  rows.push(['Module', `Per ${primaryLabel}`, 'Per Month', 'Annual Recurring', 'Year-End Fees', 'One-Time Setup', 'Year 1 Revenue', 'Note']);
   items.forEach(item => {
     rows.push([
       item.name,
@@ -220,7 +220,7 @@ const downloadCsv = (state, items, totals) => {
     rows.push(['Discount Applied (per payroll)', totals.discountPerPayroll.toFixed(2)]);
     rows.push(['Discount Applied (annual)', totals.discountAnnualRecurring.toFixed(2)]);
   }
-  rows.push(['Total Per Payroll (after discount)', totals.perPayroll.toFixed(2)]);
+  rows.push([`Total Per ${primaryLabel} (after discount)`, totals.perPayroll.toFixed(2)]);
   rows.push(['Total Per Month', totals.perMonth.toFixed(2)]);
   rows.push(['Total Annual Recurring', totals.annualRecurring.toFixed(2)]);
   rows.push(['Total Year-End Fees', totals.yearEnd.toFixed(2)]);
@@ -249,8 +249,14 @@ export default function SalesSummary({ state, onNotify }) {
     ? parseInt(state.annualFormsOverride) || 0
     : null;
 
+  // Column / total label depends on S-Corp billing cadence
+  const primaryPeriod = state.sCorpMode
+    ? (state.frequency === 'annual' ? 'year' : (state.frequency === 'quarterly' || state.frequency === 'monthly') ? 'quarter' : 'payroll')
+    : 'payroll';
+  const primaryLabelCapitalized = primaryPeriod === 'year' ? 'Year' : primaryPeriod === 'quarter' ? 'Quarter' : 'Payroll';
+
   const handleCsv = () => {
-    downloadCsv(state, items, totals);
+    downloadCsv(state, items, totals, primaryLabelCapitalized);
     if (onNotify) onNotify('Sales summary CSV downloaded');
   };
 
@@ -310,7 +316,7 @@ export default function SalesSummary({ state, onNotify }) {
                 <thead>
                   <tr className="text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-stone-200">
                     <th className="pb-2 pl-1">Module</th>
-                    <th className="pb-2 text-right whitespace-nowrap">Per Payroll</th>
+                    <th className="pb-2 text-right whitespace-nowrap">Per {primaryLabelCapitalized}</th>
                     <th className="pb-2 text-right whitespace-nowrap">Per Month</th>
                     <th className="pb-2 text-right whitespace-nowrap">Annual Recurring</th>
                     <th className="pb-2 text-right whitespace-nowrap">Year-End</th>
@@ -332,7 +338,14 @@ export default function SalesSummary({ state, onNotify }) {
                         {item.note && <div className="text-[10px] text-slate-400">{item.note}</div>}
                       </td>
                       <td className="py-2.5 text-right text-slate-700">
-                        {item.perPayroll > 0 ? formatMoney(item.perPayroll) : <span className="text-slate-300">—</span>}
+                        {item.perPayroll > 0 ? (
+                          <>
+                            {formatMoney(item.perPayroll)}
+                            {item.periodLabel && item.periodLabel !== 'payroll' && item.periodLabel !== 'one-time' && (
+                              <span className="text-[10px] text-slate-400 block">/ {item.periodLabel}</span>
+                            )}
+                          </>
+                        ) : <span className="text-slate-300">—</span>}
                       </td>
                       <td className="py-2.5 text-right text-slate-700">
                         {item.perMonth > 0 ? formatMoney(item.perMonth) : <span className="text-slate-300">—</span>}
@@ -361,7 +374,7 @@ export default function SalesSummary({ state, onNotify }) {
             <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-widest mb-2">Forecast Totals</h2>
             <div className="gold-hairline mb-4"></div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <TotalCell label="Per Payroll" value={formatMoney(totals.perPayroll)} sub={totals.discountPerPayroll > 0 ? `after ${state.discountPercent}% discount` : undefined} />
+              <TotalCell label={`Per ${primaryLabelCapitalized}`} value={formatMoney(totals.perPayroll)} sub={totals.discountPerPayroll > 0 ? `after ${state.discountPercent}% discount` : undefined} />
               <TotalCell label="Per Month" value={formatMoney(totals.perMonth)} />
               <TotalCell label="Annual Recurring" value={formatMoney(totals.annualRecurring)} sub={totals.discountAnnualRecurring > 0 ? `after ${formatMoney(totals.discountAnnualRecurring)} discount` : undefined} />
               <TotalCell label="Year-End Fees" value={formatMoney(totals.yearEnd)} sub={has1099 || annualForms !== null ? 'W-2 + 1099 combined' : undefined} />

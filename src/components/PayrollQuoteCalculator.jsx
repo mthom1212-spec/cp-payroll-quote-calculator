@@ -1,5 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES, MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, formatMoney, formatDate } from '../constants/pricing';
+import {
+  PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES,
+  MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE,
+  BENEFIT_EDI_MIN, JURISDICTION_FEE_PER_LOCATION,
+  formatMoney, formatDate,
+} from '../constants/pricing';
 import * as pricingCalc from '../lib/pricing-calc';
 import { Icon, ModuleIcon } from './Icons';
 import Toggle from './Toggle';
@@ -251,7 +256,7 @@ export default function PayrollQuoteCalculator() {
       if (sc.yearEnd > 0) {
         const w2Head = (w2Count !== '' && parseInt(w2Count) > 0) ? parseInt(w2Count) : employeeCount;
         const forms1099 = parseInt(count1099) || 0;
-        const rate = payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : 6.95;
+        const rate = payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : PRICING_CONFIG.payroll.yearEndPerItem;
         items.push({
           label: (overrideActive || forms1099 > 0)
             ? 'Annual W-2/1099 Processing (billed in Jan)'
@@ -340,7 +345,7 @@ export default function PayrollQuoteCalculator() {
             className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm"
           >
             <Icon.Printer />
-            Print Quote
+            {viewMode === 'sales' ? 'Print Sales Summary' : 'Print Quote'}
           </button>
         </div>
       </header>
@@ -530,7 +535,7 @@ export default function PayrollQuoteCalculator() {
                         type="number"
                         min="0"
                         step="0.05"
-                        value={payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : 6.95}
+                        value={payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : PRICING_CONFIG.payroll.yearEndPerItem}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value);
                           setPayrollYearEndRateOverride(isNaN(val) ? null : val);
@@ -546,7 +551,7 @@ export default function PayrollQuoteCalculator() {
                         </button>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Default $6.95/form. Adjust to discount the year-end W-2/1099 rate.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Default {formatMoney(PRICING_CONFIG.payroll.yearEndPerItem)}/form. Adjust to discount the year-end W-2/1099 rate.</p>
                   </div>
 
                   {/* W-2/1099 Annual Billing Override (optional) */}
@@ -1088,7 +1093,7 @@ export default function PayrollQuoteCalculator() {
                                 {/* Additional Tax Jurisdictions */}
                                 {module.id === 'payroll' && (
                                   <div className="mt-2 flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                                    <span className="text-[11px] text-slate-600 font-medium">Additional Tax Jurisdictions ($10/ea per payroll)</span>
+                                    <span className="text-[11px] text-slate-600 font-medium">Additional Tax Jurisdictions ({formatMoney(JURISDICTION_FEE_PER_LOCATION)}/ea per payroll)</span>
                                     <div className="flex items-center gap-2">
                                       <input
                                         type="number"
@@ -1098,7 +1103,7 @@ export default function PayrollQuoteCalculator() {
                                         className="w-16 text-center text-sm border border-stone-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
                                       />
                                       {additionalJurisdictions > 0 && (
-                                        <span className="text-xs font-semibold text-slate-600">+{formatMoney(additionalJurisdictions * 10)}</span>
+                                        <span className="text-xs font-semibold text-slate-600">+{formatMoney(additionalJurisdictions * JURISDICTION_FEE_PER_LOCATION)}</span>
                                       )}
                                     </div>
                                   </div>
@@ -1284,7 +1289,7 @@ export default function PayrollQuoteCalculator() {
                         {/* Recurring per-payroll preview */}
                         <div className="flex items-center justify-between bg-brand-navy/5 border border-brand-navy/10 rounded-lg px-3 py-2">
                           <span className="text-[11px] text-brand-navy/70 font-medium">
-                            Recurring: {formatMoney(benefitEdiRecurring.baseRate)}/emp (Min {formatMoney(40)})
+                            Recurring: {formatMoney(benefitEdiRecurring.baseRate)}/emp (Min {formatMoney(BENEFIT_EDI_MIN)})
                           </span>
                           <span className="text-sm font-bold text-brand-navy">
                             {formatMoney(benefitEdiRecurring.perPayroll)}
@@ -1396,6 +1401,17 @@ export default function PayrollQuoteCalculator() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
+                {/* Empty state — no modules selected in standard mode */}
+                {!sCorpMode && activeModuleCount === 0 && !benefitEdi.enabled && !stateTaxId.enabled && !pytd.enabled && Object.values(selectedAncillary).every(v => !v) && (
+                  <tr>
+                    <td colSpan={clientFacing ? 3 : 4} className="py-10 text-center">
+                      <div className="text-slate-400 text-sm italic">
+                        No services selected yet.<br />
+                        <span className="text-[11px] text-slate-300">Choose a service module on the right to start building this quote.</span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {/* S-Corp mode: single row */}
                 {sCorpMode ? (() => {
                   const sc = calculateSCorpCost();
@@ -1447,7 +1463,7 @@ export default function PayrollQuoteCalculator() {
                         )}
                         {module.id === 'payroll' && additionalJurisdictions > 0 && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
-                            + Additional Tax Jurisdictions: {additionalJurisdictions} × $10 = {formatMoney(additionalJurisdictions * 10)}/payroll
+                            + Additional Tax Jurisdictions: {additionalJurisdictions} × {formatMoney(JURISDICTION_FEE_PER_LOCATION)} = {formatMoney(additionalJurisdictions * JURISDICTION_FEE_PER_LOCATION)}/payroll
                           </div>
                         )}
                         {costs.isMinApplied && (
@@ -1553,7 +1569,7 @@ export default function PayrollQuoteCalculator() {
                     <td className="py-3 pl-2">
                       <div className="font-bold text-slate-800">Benefit Integration (EDI){benefitEdi.cobraBundle ? ' + COBRA Bundle' : ''}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
-                        {`Rate: ${formatMoney(benefitEdiRecurring.baseRate)}/emp × ${employeeCount} employees`}{benefitEdiRecurring.isMinApplied ? ` (Min ${formatMoney(40)})` : ''}
+                        {`Rate: ${formatMoney(benefitEdiRecurring.baseRate)}/emp × ${employeeCount} employees`}{benefitEdiRecurring.isMinApplied ? ` (Min ${formatMoney(BENEFIT_EDI_MIN)})` : ''}
                       </div>
                       {benefitEdiTotal > 0 && (
                         <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
