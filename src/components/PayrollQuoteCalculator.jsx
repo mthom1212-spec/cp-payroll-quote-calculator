@@ -12,6 +12,7 @@ import Toast from './Toast';
 import SalesSummary from './SalesSummary';
 
 const STORAGE_KEY = 'cpp-quote-builder:quotes';
+const REP_GUIDE_URL = 'https://claude.ai/code/artifact/b7a68740-223d-40ae-ad1d-c3052a63952d';
 
 export default function PayrollQuoteCalculator() {
   // --- State ---
@@ -340,13 +341,25 @@ export default function PayrollQuoteCalculator() {
               <p className="text-white/60 text-xs tracking-wide uppercase">Quote Builder</p>
             </div>
           </div>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm"
-          >
-            <Icon.Printer />
-            {viewMode === 'sales' ? 'Print Sales Summary' : 'Print Quote'}
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href={REP_GUIDE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open the rep guide"
+              aria-label="Open the rep guide in a new tab"
+              className="flex items-center justify-center w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <Icon.Help className="w-5 h-5" />
+            </a>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm"
+            >
+              <Icon.Printer />
+              {viewMode === 'sales' ? 'Print Sales Summary' : 'Print Quote'}
+            </button>
+          </div>
         </div>
       </header>
 
