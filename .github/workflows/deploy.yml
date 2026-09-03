@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ['main']
+    branches: ['main', 'staging']
   workflow_dispatch:
 
 permissions:
@@ -18,28 +18,82 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # ---------- Build main (production) ----------
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: main/package-lock.json
 
-      - name: Install dependencies
+      - name: Install main deps
+        working-directory: ./main
         run: npm ci
 
-      - name: Build
+      - name: Test main
+        working-directory: ./main
+        run: npm test
+
+      - name: Build main
+        working-directory: ./main
         run: npm run build
 
+      - name: Prepare combined output
+        run: |
+          mkdir -p combined
+          cp -r main/dist/. combined/
+
+      # ---------- Build staging (preview) if branch exists ----------
+      - name: Check for staging branch
+        id: check_staging
+        run: |
+          if git ls-remote --exit-code --heads https://github.com/${{ github.repository }}.git staging > /dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Staging branch exists — will build preview."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No staging branch — skipping preview build."
+          fi
+
+      - name: Checkout staging
+        if: steps.check_staging.outputs.exists == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          path: staging
+
+      - name: Install staging deps
+        if: steps.check_staging.outputs.exists == 'true'
+        working-directory: ./staging
+        run: npm ci
+
+      - name: Build staging with preview base
+        if: steps.check_staging.outputs.exists == 'true'
+        working-directory: ./staging
+        env:
+          VITE_BASE_PATH: /cp-payroll-quote-calculator/preview/
+        run: npm run build
+
+      - name: Add staging to /preview subfolder
+        if: steps.check_staging.outputs.exists == 'true'
+        run: |
+          mkdir -p combined/preview
+          cp -r staging/dist/. combined/preview/
+
+      # ---------- Upload combined artifact ----------
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: './combined'
 
   deploy:
     environment:
