@@ -33,9 +33,10 @@ export default function PayrollQuoteCalculator() {
   const [frequency, setFrequency] = useState('biweekly');
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountOptOut, setDiscountOptOut] = useState({});
+  // The single output-mode switch:
+  //   clientFacing = true  → client-friendly pricing quote
+  //   clientFacing = false → internal Sales Summary (revenue breakdown + CSV)
   const [clientFacing, setClientFacing] = useState(true);
-  // View mode: 'client' = normal quote(s), 'sales' = internal sales summary
-  const [viewMode, setViewMode] = useState('client');
 
   const [showRepInfo, setShowRepInfo] = useState(false);
   const [repName, setRepName] = useState('');
@@ -128,7 +129,7 @@ export default function PayrollQuoteCalculator() {
       clientName, quoteDate, employeeCount, w2Count, count1099,
       payrollYearEndRateOverride, annualFormsOverride,
       expenseUserCount, frequency, discountPercent, discountOptOut,
-      clientFacing, viewMode, showRepInfo, repName, repPhone, repEmail,
+      clientFacing, showRepInfo, repName, repPhone, repEmail,
       selectedModules, payrollBaseOverride, additionalJurisdictions,
       showAncillary, selectedAncillary, sCorpMode, sCorpSetup,
       stateTaxId, pytd, benefitEdi, ancillaryRateOverrides, setupFees,
@@ -156,7 +157,6 @@ export default function PayrollQuoteCalculator() {
     if (s.discountPercent !== undefined) setDiscountPercent(s.discountPercent);
     if (s.discountOptOut !== undefined) setDiscountOptOut(s.discountOptOut);
     if (s.clientFacing !== undefined) setClientFacing(s.clientFacing);
-    if (s.viewMode !== undefined) setViewMode(s.viewMode);
     if (s.showRepInfo !== undefined) setShowRepInfo(s.showRepInfo);
     if (s.repName !== undefined) setRepName(s.repName);
     if (s.repPhone !== undefined) setRepPhone(s.repPhone);
@@ -364,37 +364,13 @@ export default function PayrollQuoteCalculator() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Output View segmented control */}
-            <div className="inline-flex bg-black/20 rounded-lg p-0.5 mr-1">
-              <button
-                type="button"
-                onClick={() => setViewMode('client')}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all relative ${
-                  viewMode === 'client'
-                    ? 'bg-white text-brand-navy shadow-sm'
-                    : 'text-white/70 hover:text-white'
-                }`}
-              >
-                Client Quote
-                {viewMode === 'client' && (
-                  <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('sales')}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all relative ${
-                  viewMode === 'sales'
-                    ? 'bg-white text-brand-navy shadow-sm'
-                    : 'text-white/70 hover:text-white'
-                }`}
-              >
-                Sales Summary
-                {viewMode === 'sales' && (
-                  <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>
-                )}
-              </button>
-            </div>
+            {/* Internal-view badge — shown when Client Facing is off */}
+            {!clientFacing && (
+              <span className="inline-flex items-center gap-1.5 bg-brand-gold/90 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                Internal View
+              </span>
+            )}
 
             <a
               href={REP_GUIDE_URL}
@@ -414,7 +390,7 @@ export default function PayrollQuoteCalculator() {
                 className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-4 py-2 rounded-l-lg font-semibold text-sm transition-colors border-r border-brand-goldDark/40"
               >
                 <Icon.Printer />
-                {viewMode === 'sales' ? 'Print Summary' : 'Print Quote'}
+                {clientFacing ? 'Print Quote' : 'Print Sales Summary'}
               </button>
               <div className="relative group">
                 <button
@@ -424,13 +400,13 @@ export default function PayrollQuoteCalculator() {
                 >
                   <Icon.ChevronDown className="w-4 h-4" />
                 </button>
-                <div className="absolute right-0 top-full mt-1 min-w-[220px] bg-white border border-stone-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all z-40 p-1">
+                <div className="absolute right-0 top-full mt-1 min-w-[240px] bg-white border border-stone-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all z-40 p-1">
                   <button
-                    onClick={() => { setViewMode(viewMode === 'sales' ? 'client' : 'sales'); }}
+                    onClick={() => setClientFacing(prev => !prev)}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-stone-100 rounded-md flex items-center gap-2"
                   >
                     <span className="text-brand-navy">↕</span>
-                    Switch to {viewMode === 'sales' ? 'Client Quote' : 'Sales Summary'}
+                    Switch to {clientFacing ? 'Internal Sales View' : 'Client-Facing Quote'}
                   </button>
                   <button
                     onClick={() => window.print()}
@@ -780,17 +756,41 @@ export default function PayrollQuoteCalculator() {
 
                   <hr className="border-stone-100" />
 
-                  {/* Client Facing Toggle — only relevant in Client Quote view */}
-                  {viewMode === 'client' && (
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Client Facing</label>
-                      <Toggle
-                        checked={clientFacing}
-                        onChange={() => setClientFacing(prev => !prev)}
-                        label="Toggle client facing mode"
-                      />
+                  {/* Output — Client-facing quote vs internal sales summary */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Output</label>
+                    <div className="grid grid-cols-2 gap-1 bg-stone-100 rounded-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => setClientFacing(true)}
+                        className={`text-xs font-semibold py-2 rounded-md transition-all relative ${
+                          clientFacing
+                            ? 'bg-white text-brand-navy shadow-sm'
+                            : 'text-slate-500 hover:text-brand-navy'
+                        }`}
+                      >
+                        Client-Facing
+                        {clientFacing && <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setClientFacing(false)}
+                        className={`text-xs font-semibold py-2 rounded-md transition-all relative ${
+                          !clientFacing
+                            ? 'bg-brand-navy text-white shadow-sm'
+                            : 'text-slate-500 hover:text-brand-navy'
+                        }`}
+                      >
+                        Internal Sales
+                        {!clientFacing && <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>}
+                      </button>
                     </div>
-                  )}
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {clientFacing
+                        ? 'Standard client-facing pricing quote below — safe to send to the client.'
+                        : 'Internal revenue breakdown with per-module totals and CSV export — not for client distribution.'}
+                    </p>
+                  </div>
 
                   <hr className="border-stone-100" />
 
@@ -1449,8 +1449,9 @@ export default function PayrollQuoteCalculator() {
           </div>
         </section>
 
-        {/* Sales Summary (internal view) — replaces the client-facing quote when active */}
-        {viewMode === 'sales' && (
+        {/* Output area — swaps between client-facing quote and internal sales summary
+            based on the Client Facing toggle. Same underlying quote either way. */}
+        {!clientFacing && (
           <SalesSummary
             state={{
               clientName, quoteDate, employeeCount, w2Count, count1099,
@@ -1466,8 +1467,7 @@ export default function PayrollQuoteCalculator() {
           />
         )}
 
-        {/* Client Quote (default view) — hidden when Sales Summary is active */}
-        {viewMode === 'client' && (
+        {clientFacing && (
         <>
         {/* Quote Preview / Print Sheet */}
         <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto print-container print-page-fill">
