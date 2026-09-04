@@ -233,6 +233,31 @@ export default function PayrollQuoteCalculator() {
     down: employeeCount > 0 ? totals.finalPerPayroll - totalPerPayrollAt(employeeCount - 1) : 0,
   };
 
+  // Identify selected modules currently sitting at their minimum floor.
+  // For each, compute the employee-count threshold where they'd unlock:
+  //   raw cost = base + pepm × emp = min  →  emp = ceil((min - base) / pepm)
+  const modulesAtMinimum = (() => {
+    if (sCorpMode) return [];
+    const flagged = [];
+    Object.values(PRICING_CONFIG).forEach(m => {
+      if (!selectedModules[m.id]) return;
+      const c = calculateModuleCost(m.id);
+      if (c.isMinApplied && c.rates.pepm > 0) {
+        const unlockEmp = Math.ceil((c.rates.min - c.rates.base) / c.rates.pepm);
+        flagged.push({ name: m.name, unlockAt: unlockEmp });
+      }
+    });
+    Object.values(ANCILLARY_PRICING).forEach(svc => {
+      if (!selectedAncillary[svc.id]) return;
+      const c = calculateModuleCost(svc.id, ANCILLARY_PRICING);
+      if (c.isMinApplied && c.rates.pepm > 0) {
+        const unlockEmp = Math.ceil((c.rates.min - c.rates.base) / c.rates.pepm);
+        flagged.push({ name: svc.name, unlockAt: unlockEmp });
+      }
+    });
+    return flagged;
+  })();
+
   // Small green asterisk shown next to per-payroll amounts on the quote for
   // modules being discounted (only when a discount % is set and the module
   // hasn't been opted out).
@@ -1715,14 +1740,34 @@ export default function PayrollQuoteCalculator() {
                   </td>
                 </tr>
 
-                {/* Per-employee delta caption */}
-                {(perEmployeeDelta.up > 0 || perEmployeeDelta.down > 0) && (
+                {/* Per-employee delta caption + minimum explanation */}
+                {(perEmployeeDelta.up > 0 || perEmployeeDelta.down > 0 || modulesAtMinimum.length > 0) && (
                   <tr>
-                    <td colSpan={clientFacing ? 3 : 4} className="pb-3 pl-2 text-[10px] text-slate-500 italic">
-                      <span className="font-semibold text-slate-600 not-italic">Per-employee adjustment (approx.):</span>{' '}
-                      +{formatMoney(perEmployeeDelta.up)} per added employee
-                      {' / '}&minus;{formatMoney(perEmployeeDelta.down)} per terminated employee
-                      <span className="text-slate-400"> · per payroll</span>
+                    <td colSpan={clientFacing ? 3 : 4} className="pb-3 pl-2 text-[10px] text-slate-500 italic leading-snug">
+                      <div>
+                        <span className="font-semibold text-slate-600 not-italic">Per-employee adjustment (approx.):</span>{' '}
+                        +{formatMoney(perEmployeeDelta.up)} per added employee
+                        {' / '}&minus;{formatMoney(perEmployeeDelta.down)} per terminated employee
+                        <span className="text-slate-400"> · per payroll</span>
+                      </div>
+                      {modulesAtMinimum.length > 0 && (
+                        <div className="mt-1 text-slate-500">
+                          <span className="text-brand-gold font-bold">★</span>{' '}
+                          {modulesAtMinimum.map(m => m.name).join(' and ')}{' '}
+                          {modulesAtMinimum.length === 1 ? 'is' : 'are'} currently at
+                          {modulesAtMinimum.length === 1 ? ' its minimum' : ' their minimums'}
+                          {' — adding employees won’t increase '}
+                          {modulesAtMinimum.length === 1 ? 'this fee' : 'those fees'}
+                          {' until '}
+                          {modulesAtMinimum.map((m, i) => (
+                            <span key={i}>
+                              {i > 0 && (i === modulesAtMinimum.length - 1 ? ' and ' : ', ')}
+                              <span className="font-semibold text-slate-600 not-italic">~{m.unlockAt}</span> ({m.name.replace(/\s*\(.*\)/, '')})
+                            </span>
+                          ))}
+                          {' employees.'}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}
