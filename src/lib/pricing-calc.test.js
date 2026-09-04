@@ -855,3 +855,54 @@ describe('end-to-end mid-size company scenario', () => {
     expect(t.totalYearEnd).toBe(0);
   });
 });
+
+// =============================================================
+// Digital Labor Law Poster (monthlyFlat: $10/month flat)
+// =============================================================
+describe('Digital Labor Law Poster (monthlyFlat)', () => {
+  it('bi-weekly: $10/month × 12 / 26 = $4.615 per payroll', () => {
+    const c = calculateModuleCost('digitalLaborPoster', ANCILLARY_PRICING, baseState({
+      frequency: 'biweekly',
+    }));
+    near(c.perPayroll, (10 * 12) / 26);
+  });
+
+  it('monthly: $10 per payroll (matches $10/month)', () => {
+    const c = calculateModuleCost('digitalLaborPoster', ANCILLARY_PRICING, baseState({
+      frequency: 'monthly',
+    }));
+    near(c.perPayroll, 10);
+  });
+
+  it('flat fee does not scale with employees', () => {
+    const c1 = calculateModuleCost('digitalLaborPoster', ANCILLARY_PRICING, baseState({
+      employeeCount: 5,
+    }));
+    const c2 = calculateModuleCost('digitalLaborPoster', ANCILLARY_PRICING, baseState({
+      employeeCount: 500,
+    }));
+    // Same per-payroll regardless of headcount
+    near(c1.perPayroll, c2.perPayroll);
+  });
+
+  it('annualizes to exactly $120/year (12 × $10)', () => {
+    const c = calculateModuleCost('digitalLaborPoster', ANCILLARY_PRICING, baseState({
+      frequency: 'biweekly',
+    }));
+    near(c.annual, 120);
+  });
+
+  it('appears in totals when selected', () => {
+    const state = baseState({
+      selectedModules: { payroll: true },
+      selectedAncillary: { digitalLaborPoster: true },
+    });
+    const t = calculateTotals(state);
+    // Payroll ($88.50) + Digital Labor Poster ($4.615) = $93.115
+    const expected = (48 + 2.70 * 15) + (10 * 12 / 26);
+    near(t.finalPerPayroll, expected);
+    // Annual = payroll annual + $120 flat
+    const payrollAnnual = (48 + 2.70 * 15) * 26 + (150 + 6.95 * 15);
+    near(t.finalAnnual, payrollAnnual + 120);
+  });
+});

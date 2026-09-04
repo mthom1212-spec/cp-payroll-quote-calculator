@@ -97,15 +97,24 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   const multiplier = getMultiplier(frequency);
   const empCount = customEmpCount !== null ? customEmpCount : employeeCount;
 
-  // --- Base fee (payroll can be overridden) ---
-  const adjBase = (moduleKey === 'payroll' && payrollBaseOverride !== null && payrollBaseOverride !== undefined)
-    ? payrollBaseOverride
-    : config.baseFee * multiplier;
+  // --- Base fee (payroll can be overridden; monthly-flat services carry it here) ---
+  let adjBase;
+  if (moduleKey === 'payroll' && payrollBaseOverride !== null && payrollBaseOverride !== undefined) {
+    adjBase = payrollBaseOverride;
+  } else if (config.monthlyBilling && config.monthlyFlat !== undefined) {
+    // Flat monthly fee (e.g., Digital Labor Law Poster): convert to per-payroll base.
+    adjBase = (config.monthlyFlat * 12) / FREQUENCIES[frequency].periods;
+  } else {
+    adjBase = config.baseFee * multiplier;
+  }
 
   // --- Per-employee rate (monthly billing / overrides / default) ---
   const overrides = ancillaryRateOverrides[moduleKey];
   let adjPepm;
-  if (config.monthlyBilling) {
+  if (config.monthlyBilling && config.monthlyFlat !== undefined) {
+    // Flat monthly — no per-employee component.
+    adjPepm = 0;
+  } else if (config.monthlyBilling) {
     adjPepm = (config.monthlyPerUser * 12) / FREQUENCIES[frequency].periods;
   } else if (overrides?.pepm !== null && overrides?.pepm !== undefined) {
     adjPepm = overrides.pepm * multiplier;

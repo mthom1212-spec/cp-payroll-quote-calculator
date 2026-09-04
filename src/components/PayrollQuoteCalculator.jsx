@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES,
-  MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE,
+  MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, USAGE_RATE_SHEET,
   BENEFIT_EDI_MIN, JURISDICTION_FEE_PER_LOCATION,
   formatMoney, formatDate,
 } from '../constants/pricing';
@@ -356,14 +356,6 @@ export default function PayrollQuoteCalculator() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Internal-view badge — shown when Client Facing is off */}
-            {!clientFacing && (
-              <span className="inline-flex items-center gap-1.5 bg-brand-gold/90 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                Internal View
-              </span>
-            )}
-
             <a
               href={REP_GUIDE_URL}
               target="_blank"
@@ -375,50 +367,13 @@ export default function PayrollQuoteCalculator() {
               <Icon.Help className="w-5 h-5" />
             </a>
 
-            {/* Split print button */}
-            <div className="inline-flex shadow-sm">
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-4 py-2 rounded-l-lg font-semibold text-sm transition-colors border-r border-brand-goldDark/40"
-              >
-                <Icon.Printer />
-                {clientFacing ? 'Print Quote' : 'Print Sales Summary'}
-              </button>
-              <div className="relative group">
-                <button
-                  className="flex items-center justify-center bg-brand-gold hover:bg-brand-goldDark text-white h-full px-2.5 rounded-r-lg font-semibold text-sm transition-colors"
-                  aria-label="More print options"
-                  aria-haspopup="true"
-                >
-                  <Icon.ChevronDown className="w-4 h-4" />
-                </button>
-                <div className="absolute right-0 top-full mt-1 min-w-[240px] bg-white border border-stone-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all z-40 p-1">
-                  <button
-                    onClick={() => setClientFacing(prev => !prev)}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-stone-100 rounded-md flex items-center gap-2"
-                  >
-                    <span className="text-brand-navy">↕</span>
-                    Switch to {clientFacing ? 'Internal Sales View' : 'Client-Facing Quote'}
-                  </button>
-                  <button
-                    onClick={() => window.print()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-stone-100 rounded-md flex items-center gap-2"
-                  >
-                    <Icon.Printer className="w-4 h-4 text-brand-navy" />
-                    Print current view
-                  </button>
-                  <a
-                    href={REP_GUIDE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-stone-100 rounded-md flex items-center gap-2"
-                  >
-                    <Icon.Help className="w-4 h-4 text-brand-navy" />
-                    Open rep guide
-                  </a>
-                </div>
-              </div>
-            </div>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm"
+            >
+              <Icon.Printer />
+              Print Quote
+            </button>
           </div>
         </div>
       </header>
@@ -630,41 +585,20 @@ export default function PayrollQuoteCalculator() {
 
                   <hr className="border-stone-100" />
 
-                  {/* Output — Client-facing quote vs internal sales summary */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Output</label>
-                    <div className="grid grid-cols-2 gap-1 bg-stone-100 rounded-lg p-1">
-                      <button
-                        type="button"
-                        onClick={() => setClientFacing(true)}
-                        className={`text-xs font-semibold py-2 rounded-md transition-all relative ${
-                          clientFacing
-                            ? 'bg-white text-brand-navy shadow-sm'
-                            : 'text-slate-500 hover:text-brand-navy'
-                        }`}
-                      >
-                        Client-Facing
-                        {clientFacing && <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setClientFacing(false)}
-                        className={`text-xs font-semibold py-2 rounded-md transition-all relative ${
-                          !clientFacing
-                            ? 'bg-brand-navy text-white shadow-sm'
-                            : 'text-slate-500 hover:text-brand-navy'
-                        }`}
-                      >
-                        Internal Sales
-                        {!clientFacing && <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>}
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      {clientFacing
-                        ? 'Standard client-facing pricing quote below — safe to send to the client.'
-                        : 'Internal revenue breakdown with per-module totals and CSV export — not for client distribution.'}
-                    </p>
+                  {/* Client Facing toggle — controls whether Annual Est. column appears in the quote table */}
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Client Facing</label>
+                    <Toggle
+                      checked={clientFacing}
+                      onChange={() => setClientFacing(prev => !prev)}
+                      label="Toggle client facing mode"
+                    />
                   </div>
+                  <p className="text-[11px] text-slate-400 -mt-2">
+                    {clientFacing
+                      ? 'On: standard client-facing quote (no annual column).'
+                      : 'Off: shows Annual Est. column inline for internal review.'}
+                  </p>
 
                   <hr className="border-stone-100" />
 
@@ -1011,7 +945,13 @@ export default function PayrollQuoteCalculator() {
                           />
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-semibold text-slate-800 group-hover:text-brand-navy transition-colors">{svc.name}</span>
-                            <span className="block text-[11px] text-slate-500 mt-0.5">{svc.monthlyBilling ? `${formatMoney(svc.monthlyPerUser)}/user/month · billed monthly` : `${formatMoney(svc.pepm)}/emp per payroll${svc.minimum > 0 ? ` (Min ${formatMoney(svc.minimum)})` : ''}`}</span>
+                            <span className="block text-[11px] text-slate-500 mt-0.5">{
+                              svc.monthlyBilling
+                                ? (svc.monthlyFlat !== undefined
+                                    ? `${formatMoney(svc.monthlyFlat)}/month · flat · billed monthly`
+                                    : `${formatMoney(svc.monthlyPerUser)}/user/month · billed monthly`)
+                                : `${formatMoney(svc.pepm)}/emp per payroll${svc.minimum > 0 ? ` (Min ${formatMoney(svc.minimum)})` : ''}`
+                            }</span>
                           </div>
                         </label>
                         {selectedAncillary[svc.id] && (
@@ -1462,25 +1402,8 @@ export default function PayrollQuoteCalculator() {
           </div>
         </section>
 
-        {/* Output area — swaps between client-facing quote and internal sales summary
-            based on the Client Facing toggle. Same underlying quote either way. */}
-        {!clientFacing && (
-          <SalesSummary
-            state={{
-              clientName, quoteDate, employeeCount, w2Count, count1099,
-              annualFormsOverride, payrollYearEndRateOverride,
-              expenseUserCount, frequency, discountPercent, discountOptOut,
-              selectedModules, selectedAncillary, setupFees,
-              payrollBaseOverride, additionalJurisdictions, ancillaryRateOverrides,
-              sCorpMode, sCorpSetup,
-              stateTaxId, pytd, benefitEdi,
-              showRepInfo, repName, repPhone, repEmail,
-            }}
-            onNotify={(msg) => showToast(msg)}
-          />
-        )}
-
-        {clientFacing && (
+        {/* Client Facing toggle now controls only the Annual Est. column visibility
+            on the standard quote — no separate Sales Summary view. */}
         <>
         {/* Quote Preview / Print Sheet */}
         <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto print-container print-page-fill">
@@ -1639,7 +1562,14 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-3 pl-2">
                         <div className="font-bold text-slate-800">{svc.name}</div>
                         <div className="text-[10px] text-slate-400 mt-0.5">
-                          {`Rate: ${formatMoney(costs.rates.pepm)}/${svc.monthlyBilling ? 'user' : 'emp'}${formatHeadcount(costs)}`}{costs.isMinApplied ? ` (Min ${formatMoney(costs.rates.min)})` : ''}{svc.monthlyBilling ? ' · Billed monthly' : ''}
+                          {svc.monthlyBilling && svc.monthlyFlat !== undefined
+                            ? `Rate: ${formatMoney(svc.monthlyFlat)}/month · flat · Billed monthly`
+                            : (
+                              `Rate: ${formatMoney(costs.rates.pepm)}/${svc.monthlyBilling ? 'user' : 'emp'}${formatHeadcount(costs)}`
+                              + (costs.isMinApplied ? ` (Min ${formatMoney(costs.rates.min)})` : '')
+                              + (svc.monthlyBilling ? ' · Billed monthly' : '')
+                            )
+                          }
                         </div>
                         {costs.isMinApplied && (
                           <span className="inline-block mt-1 text-[9px] text-brand-gold font-bold uppercase tracking-wider">
@@ -1908,7 +1838,178 @@ export default function PayrollQuoteCalculator() {
           </div>
         </section>
 
-        {/* Page 2: Services Included (Client Facing Only, separate page in print — hidden for S-Corp print) */}
+        {/* Page 2: Additional Services & Rates (Client Facing Only, separate page in print) */}
+        {clientFacing && !sCorpMode && (() => {
+          // Build the annual recap: for each selected module + ancillary, sum per-payroll and annualized.
+          const periods = FREQUENCIES[frequency].periods;
+          const recap = [];
+          Object.values(PRICING_CONFIG).forEach(m => {
+            if (selectedModules[m.id]) {
+              const c = calculateModuleCost(m.id);
+              recap.push({ name: m.name, perPayroll: c.perPayroll, annual: c.perPayroll * periods });
+            }
+          });
+          Object.values(ANCILLARY_PRICING).forEach(s => {
+            if (selectedAncillary[s.id]) {
+              const c = calculateModuleCost(s.id, ANCILLARY_PRICING);
+              recap.push({ name: s.name, perPayroll: c.perPayroll, annual: c.perPayroll * periods, monthly: s.monthlyBilling });
+            }
+          });
+          if (benefitEdi.enabled) {
+            recap.push({ name: `Benefit Integration (EDI)${benefitEdi.cobraBundle ? ' + COBRA' : ''}`, perPayroll: benefitEdiRecurring.perPayroll, annual: benefitEdiRecurring.annual });
+          }
+          const recapTotalPP = recap.reduce((s, r) => s + r.perPayroll, 0);
+          const recapTotalAnnual = recap.reduce((s, r) => s + r.annual, 0);
+          const discountApplied = discountPercent > 0 ? recapTotalPP * (discountPercent / 100) : 0;
+          const finalPP = recapTotalPP - discountApplied;
+          const finalAnnual = recapTotalAnnual - (discountApplied * periods);
+          const digitalPosterEnabled = !!selectedAncillary.digitalLaborPoster;
+
+          return (
+        <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break print-services-compact">
+
+          {/* Header — matches Services Included page style */}
+          <div className="bg-brand-navy text-white p-8 services-header">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold font-display tracking-tight">Creative Planning Payroll</h1>
+                <div className="w-12 h-0.5 bg-brand-gold mt-2 mb-4"></div>
+                <p className="opacity-70 text-xs uppercase tracking-widest">Additional Services &amp; Rates For</p>
+                <h2 className="text-xl font-bold mt-1 font-display">
+                  {clientName || <span className="opacity-40 italic">[Client Name]</span>}
+                </h2>
+              </div>
+              <div className="text-right">
+                <div className="text-xs opacity-70 uppercase tracking-wider">Date Issued</div>
+                <div className="font-semibold text-lg mt-0.5">{formatDate(quoteDate)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-8">
+
+            {/* TOP: Estimated Annual Recap */}
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-1 h-5 bg-brand-navy rounded-full"></div>
+                <div>
+                  <h3 className="text-base font-bold text-brand-navy font-display">Estimated Annual Recap</h3>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mt-0.5">Recurring commitments — modules signed up for</p>
+                </div>
+              </div>
+              <div className="ml-4 border border-brand-navy/15 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-brand-navy/5">
+                    <tr className="text-[10px] uppercase tracking-widest text-brand-navy font-bold">
+                      <th className="text-left py-2 px-3">Module / Service</th>
+                      <th className="text-right py-2 px-3">Per Payroll</th>
+                      <th className="text-right py-2 px-3">Estimated Annual</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {recap.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="py-6 text-center text-slate-400 italic text-sm">
+                          No services selected yet.
+                        </td>
+                      </tr>
+                    ) : recap.map((r, i) => (
+                      <tr key={i} className="tabular-nums">
+                        <td className="py-2 px-3 text-slate-700 font-medium">
+                          {r.name}
+                          {r.monthly && <span className="ml-2 text-[9px] text-slate-400 italic">(billed monthly)</span>}
+                        </td>
+                        <td className="py-2 px-3 text-right text-slate-700">{formatMoney(r.perPayroll)}</td>
+                        <td className="py-2 px-3 text-right text-brand-navy font-semibold">{formatMoney(r.annual)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="border-t-2 border-brand-navy bg-brand-navy/5">
+                    {discountApplied > 0 && (
+                      <tr className="tabular-nums text-xs">
+                        <td className="py-2 px-3 text-emerald-700 font-semibold">Recurring Discount ({discountPercent}%)</td>
+                        <td className="py-2 px-3 text-right text-emerald-700">− {formatMoney(discountApplied)}</td>
+                        <td className="py-2 px-3 text-right text-emerald-700">− {formatMoney(discountApplied * periods)}</td>
+                      </tr>
+                    )}
+                    <tr className="tabular-nums">
+                      <td className="py-3 px-3 font-bold text-brand-navy uppercase text-xs tracking-wider">Total Recurring</td>
+                      <td className="py-3 px-3 text-right font-bold text-brand-navy">{formatMoney(finalPP)}</td>
+                      <td className="py-3 px-3 text-right font-bold text-brand-navy text-lg">{formatMoney(finalAnnual)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <p className="text-[10px] text-slate-400 italic mt-2 ml-4">
+                Annual estimate = per-payroll × {periods} pay periods per year (frequency: {FREQUENCIES[frequency].label}). Excludes year-end fees and one-time setup.
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t-2 border-dashed border-stone-200"></div>
+
+            {/* BOTTOM: Ancillary Rate Sheet */}
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-1 h-5 bg-brand-gold rounded-full"></div>
+                <div>
+                  <h3 className="text-base font-bold text-brand-navy font-display">Ancillary Rate Sheet</h3>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mt-0.5">Additional services billed only if used — not included in totals above</p>
+                </div>
+              </div>
+              <div className="ml-4 grid gap-2 sm:grid-cols-2">
+                {USAGE_RATE_SHEET.map(item => (
+                  <div key={item.id} className="flex items-start justify-between gap-3 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-slate-800">{item.name}</div>
+                      {item.note && <div className="text-[10px] text-slate-400 italic mt-0.5">{item.note}</div>}
+                    </div>
+                    <div className="text-right whitespace-nowrap flex-shrink-0">
+                      <div className="text-sm font-bold text-brand-navy tabular-nums">{item.rate}</div>
+                      <div className="text-[10px] text-slate-400">{item.unit}</div>
+                    </div>
+                  </div>
+                ))}
+                {/* Digital Labor Law Poster — opt-in, shown here for transparency */}
+                <div className={`flex items-start justify-between gap-3 rounded-lg px-3 py-2.5 border ${
+                  digitalPosterEnabled
+                    ? 'bg-brand-gold/10 border-brand-gold/40'
+                    : 'bg-stone-50 border-stone-200'
+                }`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-slate-800 flex items-center gap-2 flex-wrap">
+                      Digital Labor Law Poster
+                      {digitalPosterEnabled && (
+                        <span className="text-[9px] font-bold uppercase tracking-widest bg-brand-gold text-white px-1.5 py-0.5 rounded">Enabled</span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-400 italic mt-0.5">
+                      {digitalPosterEnabled ? 'Included in your recurring billing (see page 1).' : 'Opt-in service — flat monthly fee, digital compliance access.'}
+                    </div>
+                  </div>
+                  <div className="text-right whitespace-nowrap flex-shrink-0">
+                    <div className="text-sm font-bold text-brand-navy tabular-nums">$10.00</div>
+                    <div className="text-[10px] text-slate-400">per month · flat</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer note */}
+            <div className="pt-4 border-t border-stone-100 text-[10px] text-slate-400 italic">
+              <p>Ancillary rates apply as services are used and are billed on the payroll invoice for the corresponding period. Rates subject to change with 30 days' written notice.</p>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] text-slate-300 mt-3">
+              <span>Creative Planning Payroll · Confidential</span>
+              <span>Generated {formatDate(quoteDate)}</span>
+            </div>
+          </div>
+        </section>
+          );
+        })()}
+
+        {/* Page 3: Services Included (Client Facing Only, separate page in print — hidden for S-Corp print) */}
         {clientFacing && (
           <section className={`bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break print-services-compact ${sCorpMode ? 'print-scorp-hide' : ''}`}>
 
@@ -1998,7 +2099,6 @@ export default function PayrollQuoteCalculator() {
           </section>
         )}
         </>
-        )}
       </main>
 
       {/* Toast notifications */}

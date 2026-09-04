@@ -272,7 +272,70 @@ export const ANCILLARY_PRICING = {
     monthlyBilling: true,
     monthlyPerUser: 3.00,
   },
+  digitalLaborPoster: {
+    id: 'digitalLaborPoster',
+    name: 'Digital Labor Law Poster',
+    baseFee: 0.00,
+    pepm: 0.00,
+    minimum: 0.00,
+    defaultSetup: 0.00,
+    hasYearEnd: false,
+    monthlyBilling: true,
+    monthlyFlat: 10.00,   // flat $10/month (converted to per-payroll behind the scenes)
+  },
 };
+
+// Ancillary rate sheet — services that may be incurred as-used for any payroll
+// client. Shown on the "Additional Services & Rates" page for transparency;
+// not selected by reps. Purely informational rates.
+// Add more items here to extend the rate sheet.
+export const USAGE_RATE_SHEET = [
+  {
+    id: 'laborLawPoster',
+    name: 'Labor Law Poster Replacement',
+    rate: '$10.00',
+    unit: 'per additional location',
+    note: 'First location included in payroll billing.',
+  },
+  {
+    id: 'mnLevy',
+    name: 'Minnesota Levy Payments',
+    rate: '$15.00',
+    unit: 'per payment',
+  },
+  {
+    id: 'vendorCheck',
+    name: 'Vendor Check Payments',
+    rate: '$5.95',
+    unit: 'per check',
+  },
+  {
+    id: 'vendorAch',
+    name: 'Vendor ACH Payments',
+    rate: '$1.00',
+    unit: 'per payment',
+  },
+  {
+    id: 'shippingFedexTwoDay',
+    name: 'Two-Day Shipping (FedEx)',
+    rate: '$20.00',
+    unit: '+ $1.00 per item',
+    note: 'Per package. Base fee applies once per package plus item fee.',
+  },
+  {
+    id: 'shippingFedexNextDay',
+    name: 'Next-Day Shipping (FedEx)',
+    rate: '$30.00',
+    unit: '+ $1.00 per item',
+    note: 'Per package. Base fee applies once per package plus item fee.',
+  },
+  {
+    id: 'shippingUsps',
+    name: 'USPS Mail',
+    rate: '$1.75',
+    unit: 'per item mailed',
+  },
+];
 
 // Ancillary services — usage-based (informational only, not in totals)
 export const ANCILLARY_USAGE = {
