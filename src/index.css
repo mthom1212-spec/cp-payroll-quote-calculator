@@ -83,13 +83,45 @@ body {
 
 /* Additional Services & Rates page — keep it tight in print */
 @media print {
-  .rate-sheet .grid { gap: 0.5rem 1rem !important; }
+  .rate-sheet .grid { gap: 0.35rem 1rem !important; }
   .rate-sheet table th,
   .rate-sheet table td {
-    padding-top: 0.15rem !important;
-    padding-bottom: 0.15rem !important;
+    padding-top: 0.1rem !important;
+    padding-bottom: 0.1rem !important;
   }
   .rate-sheet { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Secondary pages (Additional Services, Services Included) — smaller header
+     so the whole page fits vertically without splitting sections. */
+  .services-header {
+    padding: 0.6rem 1.25rem !important;
+  }
+  .services-header h1 { font-size: 1rem !important; }
+  .services-header h2 { font-size: 1rem !important; margin-top: 0.15rem !important; }
+  .services-header .text-xs,
+  .services-header p { font-size: 0.6rem !important; }
+  .services-header .w-12 { width: 2rem !important; margin-top: 0.25rem !important; margin-bottom: 0.35rem !important; }
+  .services-header .text-lg { font-size: 0.8rem !important; }
+
+  /* Tighten the Additional Services page vertical rhythm */
+  .print-services-compact .p-8 { padding: 0.75rem 1.25rem !important; }
+  .print-services-compact .space-y-8 > * + * { margin-top: 0.5rem !important; }
+  .print-services-compact table { font-size: 0.65rem !important; }
+
+  /* Page 1: shrink T&C further so it doesn't push to page 2 */
+  .quote-body .mb-8 { margin-bottom: 0.35rem !important; }
+  .quote-body .mt-10 { margin-top: 0.4rem !important; padding-top: 0.35rem !important; }
+  .annual-fees-block { margin-bottom: 0.4rem !important; }
+  .annual-fees-block .space-y-1\.5 > * + * { margin-top: 0.1rem !important; }
+  .quote-body p.leading-relaxed { font-size: 0.6rem !important; line-height: 1.35 !important; }
+}
+
+/* Try to suppress the browser-added URL/date footers when printing.
+   Users may still need to uncheck "Headers and footers" in the print
+   dialog for full effect (Chrome specifically). */
+@page {
+  size: letter;
+  margin: 0.4in 0.4in 0.4in 0.4in;
 }
 
 /* Sales Summary print styles */

@@ -1959,16 +1959,17 @@ export default function PayrollQuoteCalculator() {
                 </div>
               </div>
 
-              <div className="ml-4 grid md:grid-cols-2 gap-x-8 gap-y-4">
-                {/* Left column: grouped compliance + payments */}
-                <div className="space-y-4">
+              <div className="ml-4 grid md:grid-cols-2 gap-x-8 gap-y-5">
+                {/* Left column: Compliance (with Digital Labor Poster merged in) + Payments */}
+                <div className="space-y-5">
                   {['Compliance', 'Payments & Levies'].map(cat => {
                     const items = USAGE_RATE_SHEET.filter(it => it.category === cat);
-                    if (items.length === 0) return null;
+                    if (items.length === 0 && cat !== 'Compliance') return null;
                     return (
                       <div key={cat}>
-                        <div className="text-[9px] font-bold text-brand-navy/70 uppercase tracking-[0.14em] pb-1 mb-1 border-b border-stone-200">
-                          {cat}
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className="w-1 h-3.5 bg-brand-gold rounded-sm"></div>
+                          <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.12em]">{cat}</h4>
                         </div>
                         <table className="w-full text-xs tabular-nums">
                           <tbody className="divide-y divide-stone-100">
@@ -1984,50 +1985,45 @@ export default function PayrollQuoteCalculator() {
                                 </td>
                               </tr>
                             ))}
+                            {/* Digital Labor Poster merged into Compliance */}
+                            {cat === 'Compliance' && (
+                              <tr className={digitalPosterEnabled ? 'bg-brand-gold/10' : ''}>
+                                <td className="py-1 pr-2 text-slate-700 font-medium">
+                                  <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                    Digital Labor Law Poster
+                                    {digitalPosterEnabled && (
+                                      <span className="text-[8px] font-bold uppercase tracking-widest bg-brand-gold text-white px-1.5 py-0.5 rounded">Enabled</span>
+                                    )}
+                                  </span>
+                                  {digitalPosterEnabled
+                                    ? <span className="text-[10px] text-slate-400 italic block leading-tight">Included in recurring billing (see page 1).</span>
+                                    : <span className="text-[10px] text-slate-400 italic block leading-tight">Opt-in — sales rep can enable.</span>}
+                                </td>
+                                <td className="py-1 text-right whitespace-nowrap">
+                                  <span className="font-semibold text-brand-navy">$10.00</span>
+                                  <span className="text-[9px] text-slate-400 ml-1">/month · flat</span>
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
                     );
                   })}
-
-                  {/* Digital Labor Law Poster — opt-in, shown for transparency */}
-                  <div>
-                    <div className="text-[9px] font-bold text-brand-navy/70 uppercase tracking-[0.14em] pb-1 mb-1 border-b border-stone-200">
-                      Opt-In Add-on
-                    </div>
-                    <div className={`flex items-center justify-between gap-2 rounded px-2 py-1.5 text-xs ${
-                      digitalPosterEnabled ? 'bg-brand-gold/10 border border-brand-gold/40' : ''
-                    }`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-slate-700 flex items-center gap-1.5 flex-wrap">
-                          Digital Labor Law Poster
-                          {digitalPosterEnabled && (
-                            <span className="text-[8px] font-bold uppercase tracking-widest bg-brand-gold text-white px-1.5 py-0.5 rounded">Enabled</span>
-                          )}
-                        </div>
-                        {digitalPosterEnabled && (
-                          <div className="text-[9px] text-slate-400 italic leading-tight">Included in your recurring billing (page 1).</div>
-                        )}
-                      </div>
-                      <div className="text-right whitespace-nowrap tabular-nums">
-                        <span className="font-semibold text-brand-navy">$10.00</span>
-                        <span className="text-[9px] text-slate-400 ml-1">/month · flat</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Right column: shipping mini-table */}
                 <div>
-                  <div className="text-[9px] font-bold text-brand-navy/70 uppercase tracking-[0.14em] pb-1 mb-1 border-b border-stone-200">
-                    Shipping · Per Package
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-1 h-3.5 bg-brand-gold rounded-sm"></div>
+                    <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.12em]">Shipping · Per Package</h4>
                   </div>
                   <table className="w-full text-xs tabular-nums">
                     <thead>
-                      <tr className="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">
-                        <th className="text-left py-1 font-semibold">Method</th>
-                        <th className="text-right py-1 font-semibold">Base</th>
-                        <th className="text-right py-1 font-semibold">Per Item</th>
+                      <tr className="text-[9px] uppercase tracking-wider text-slate-500 font-bold border-b border-stone-200">
+                        <th className="text-left py-1">Method</th>
+                        <th className="text-right py-1">Base</th>
+                        <th className="text-right py-1">Per Item</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">

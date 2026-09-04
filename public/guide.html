@@ -440,14 +440,18 @@
 
   <section id="print">
     <h2>Printing &amp; exporting</h2>
-    <p class="sub">Two ways to get the quote off the screen</p>
+    <p class="sub">Getting the quote off the screen</p>
     <ul class="tight">
-      <li><strong>Print Quote</strong> (top right) — opens your browser's print dialog. Choose "Save as PDF" to send to the client. In Sales Summary view, the button relabels to <strong>Print Sales Summary</strong> and prints the internal version instead.</li>
-      <li><strong>Download CSV</strong> (Sales Summary view only) — click the gold button in the summary header. You'll get a file named <code>&lt;client-name&gt;-sales-summary-&lt;date&gt;.csv</code> that opens in Excel and pastes into Salesforce.</li>
+      <li><strong>Print Quote</strong> (top right) — opens your browser's print dialog. Choose "Save as PDF" to send to the client.</li>
+      <li>The printed output flows to multiple pages: Page 1 = pricing quote &amp; T&amp;C, Page 2 = Additional Services &amp; Rates, Page 3 = Services Included (per-module bullet lists). For S-Corp quotes, everything fits on one page.</li>
     </ul>
+    <div class="tip">
+      <span class="tip-label">Tip</span>
+      <div><strong>Remove the browser URL from the printed page:</strong> in the print dialog, expand <strong>More settings</strong> and uncheck <strong>Headers and footers</strong>. This hides the URL/date/page numbers that browsers add by default. Chrome and Edge remember this preference after you set it once.</div>
+    </div>
     <div class="note">
       <span class="tip-label">Note</span>
-      <div>For multi-module quotes, the Print output automatically flows to a second page for the "Services Included" section (client-facing mode). For S-Corp quotes, everything fits on one page.</div>
+      <div>When Client Facing is off, the pricing table includes an Annual Est. column for your internal review. Toggle it on before printing for the client.</div>
     </div>
   </section>
 
