@@ -83,13 +83,11 @@ body {
 
 /* Additional Services & Rates page — keep it tight in print */
 @media print {
-  .rate-sheet .grid { gap: 0.35rem 1rem !important; }
   .rate-sheet table th,
   .rate-sheet table td {
     padding-top: 0.1rem !important;
     padding-bottom: 0.1rem !important;
   }
-  .rate-sheet { break-inside: avoid; page-break-inside: avoid; }
 
   /* Secondary pages (Additional Services, Services Included) — smaller header
      so the whole page fits vertically without splitting sections. */
@@ -251,9 +249,11 @@ body {
     display: none !important;
   }
 
-  /* Pricing page: pin T&C to bottom when short, flow naturally when long */
+  /* Pricing page: keep flex column layout so T&C can be pushed to the bottom
+     of its own space, but do NOT force min-height: 100vh. That was causing
+     a trailing blank page for short quotes because content overshot the
+     page boundary by a hair. Let the browser fit each section naturally. */
   .print-page-fill {
-    min-height: 100vh !important;
     display: flex !important;
     flex-direction: column !important;
   }

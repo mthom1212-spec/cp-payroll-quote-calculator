@@ -1962,95 +1962,105 @@ export default function PayrollQuoteCalculator() {
                 </div>
               </div>
 
-              <div className="ml-4 grid md:grid-cols-2 gap-x-6 gap-y-4">
-                {/* Left column: Compliance (with Digital Labor Poster) + Payments as cards */}
-                <div className="space-y-4">
-                  {['Compliance', 'Payments & Levies'].map(cat => {
-                    const items = USAGE_RATE_SHEET.filter(it => it.category === cat);
-                    if (items.length === 0 && cat !== 'Compliance') return null;
-                    return (
-                      <div key={cat}>
-                        {/* Bold section header with gold accent bar */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-1 h-4 bg-brand-gold rounded-sm"></div>
-                          <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">{cat}</h4>
-                        </div>
+              {/* Unified data table with aligned Amount column */}
+              <div className="ml-4">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-[9px] uppercase tracking-[0.12em] font-bold text-slate-500 border-b-2 border-brand-navy">
+                      <th className="text-left py-1 pr-3 w-[22%]">Category</th>
+                      <th className="text-left py-1 pr-3">Service</th>
+                      <th className="text-right py-1 pr-2 tabular-nums w-[14%]">Amount</th>
+                      <th className="text-left py-1 pl-2 w-[28%]">Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {(() => {
+                      // Assemble rows grouped by category, with rowspan for the category cell.
+                      const rows = [];
 
-                        <div className="space-y-1.5">
-                          {items.map(item => (
-                            <div key={item.id} className="flex items-start justify-between gap-3 bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5">
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold text-slate-800 leading-tight">{item.name}</div>
-                                {item.note && <div className="text-[9px] text-slate-400 italic mt-0.5 leading-tight">{item.note}</div>}
-                              </div>
-                              <div className="text-right whitespace-nowrap flex-shrink-0 tabular-nums">
-                                <div className="text-xs font-bold text-brand-navy">{item.rate}</div>
-                                <div className="text-[9px] text-slate-400">{item.unit}</div>
-                              </div>
-                            </div>
-                          ))}
-                          {/* Digital Labor Poster merged into Compliance */}
-                          {cat === 'Compliance' && (
-                            <div className={`flex items-start justify-between gap-3 rounded-lg px-3 py-1.5 border ${
-                              digitalPosterEnabled
-                                ? 'bg-brand-gold/10 border-brand-gold/40'
-                                : 'bg-stone-50 border-stone-200'
-                            }`}>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold text-slate-800 leading-tight flex items-center gap-1.5 flex-wrap">
-                                  Digital Labor Law Poster
-                                  {digitalPosterEnabled && (
-                                    <span className="text-[8px] font-bold uppercase tracking-widest bg-brand-gold text-white px-1.5 py-0.5 rounded">Enabled</span>
-                                  )}
-                                </div>
-                                <div className="text-[9px] text-slate-400 italic mt-0.5 leading-tight">
-                                  {digitalPosterEnabled ? 'Included in recurring billing (page 1).' : 'Opt-in — sales rep can enable.'}
-                                </div>
-                              </div>
-                              <div className="text-right whitespace-nowrap flex-shrink-0 tabular-nums">
-                                <div className="text-xs font-bold text-brand-navy">$10.00</div>
-                                <div className="text-[9px] text-slate-400">/month · flat</div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Right column: shipping mini-table */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1 h-4 bg-brand-gold rounded-sm"></div>
-                    <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">Shipping · Per Package</h4>
-                  </div>
-                  <div className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
-                    <table className="w-full text-xs tabular-nums">
-                      <thead>
-                        <tr className="text-[9px] uppercase tracking-wider text-slate-500 font-bold border-b border-stone-200">
-                          <th className="text-left py-1">Method</th>
-                          <th className="text-right py-1">Base</th>
-                          <th className="text-right py-1">Per Item</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-stone-100">
-                        {SHIPPING_RATE_SHEET.map(s => (
-                          <tr key={s.id}>
-                            <td className="py-1 text-slate-700 font-medium">{s.method}</td>
-                            <td className="py-1 text-right text-brand-navy font-semibold">
-                              {s.base === null ? <span className="text-slate-300">—</span> : formatMoney(s.base)}
+                      // --- Compliance (including Digital Labor Poster) ---
+                      const complianceItems = USAGE_RATE_SHEET.filter(it => it.category === 'Compliance');
+                      const compTotal = complianceItems.length + 1; // +1 for Digital Labor Poster
+                      complianceItems.forEach((item, i) => {
+                        rows.push(
+                          <tr key={item.id}>
+                            {i === 0 && (
+                              <td rowSpan={compTotal} className="align-top pt-1 pr-3 border-r-2 border-brand-gold">
+                                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-brand-navy">Compliance</span>
+                              </td>
+                            )}
+                            <td className="py-1 pr-3 text-slate-700 font-medium">
+                              {item.name}
+                              {item.note && <span className="block text-[10px] text-slate-400 italic leading-tight">{item.note}</span>}
                             </td>
-                            <td className="py-1 text-right text-brand-navy font-semibold">{formatMoney(s.perItem)}</td>
+                            <td className="py-1 pr-2 text-right text-brand-navy font-bold tabular-nums whitespace-nowrap">{item.rate}</td>
+                            <td className="py-1 pl-2 text-slate-500 text-[11px] whitespace-nowrap">{item.unit}</td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <p className="text-[9px] text-slate-400 italic mt-1 leading-tight">
-                    Choose one method per shipment. Base fee applies once per package plus item fee.
-                  </p>
-                </div>
+                        );
+                      });
+                      // Digital Labor Poster row
+                      rows.push(
+                        <tr key="digitalLaborPoster" className={digitalPosterEnabled ? 'bg-brand-gold/10' : ''}>
+                          <td className="py-1 pr-3 text-slate-700 font-medium">
+                            Digital Labor Law Poster
+                            {digitalPosterEnabled && (
+                              <span className="ml-2 text-[8px] font-bold uppercase tracking-widest bg-brand-gold text-white px-1.5 py-0.5 rounded align-middle">Enabled</span>
+                            )}
+                            <span className="block text-[10px] text-slate-400 italic leading-tight">
+                              {digitalPosterEnabled ? 'Included in recurring billing (see page 1).' : 'Opt-in — sales rep can enable.'}
+                            </span>
+                          </td>
+                          <td className="py-1 pr-2 text-right text-brand-navy font-bold tabular-nums whitespace-nowrap">{formatMoney(10)}</td>
+                          <td className="py-1 pl-2 text-slate-500 text-[11px] whitespace-nowrap">per month · flat</td>
+                        </tr>
+                      );
+
+                      // --- Payments & Levies ---
+                      const paymentItems = USAGE_RATE_SHEET.filter(it => it.category === 'Payments & Levies');
+                      paymentItems.forEach((item, i) => {
+                        rows.push(
+                          <tr key={item.id}>
+                            {i === 0 && (
+                              <td rowSpan={paymentItems.length} className="align-top pt-1 pr-3 border-r-2 border-brand-gold">
+                                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-brand-navy">Payments &amp; Levies</span>
+                              </td>
+                            )}
+                            <td className="py-1 pr-3 text-slate-700 font-medium">{item.name}</td>
+                            <td className="py-1 pr-2 text-right text-brand-navy font-bold tabular-nums whitespace-nowrap">{item.rate}</td>
+                            <td className="py-1 pl-2 text-slate-500 text-[11px] whitespace-nowrap">{item.unit}</td>
+                          </tr>
+                        );
+                      });
+
+                      // --- Shipping ---
+                      SHIPPING_RATE_SHEET.forEach((s, i) => {
+                        // Amount = base if present, else per-item (for USPS which has no base)
+                        const showAmount = s.base !== null ? formatMoney(s.base) : formatMoney(s.perItem);
+                        const showUnit = s.base !== null
+                          ? `base + ${formatMoney(s.perItem)} per item`
+                          : 'per item mailed';
+                        rows.push(
+                          <tr key={s.id}>
+                            {i === 0 && (
+                              <td rowSpan={SHIPPING_RATE_SHEET.length} className="align-top pt-1 pr-3 border-r-2 border-brand-gold">
+                                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-brand-navy leading-tight block">Shipping</span>
+                                <span className="text-[9px] text-slate-400 italic block">per package</span>
+                              </td>
+                            )}
+                            <td className="py-1 pr-3 text-slate-700 font-medium">{s.method}</td>
+                            <td className="py-1 pr-2 text-right text-brand-navy font-bold tabular-nums whitespace-nowrap">{showAmount}</td>
+                            <td className="py-1 pl-2 text-slate-500 text-[11px] whitespace-nowrap">{showUnit}</td>
+                          </tr>
+                        );
+                      });
+
+                      return rows;
+                    })()}
+                  </tbody>
+                </table>
+                <p className="text-[10px] text-slate-400 italic mt-2 leading-tight">
+                  These rates apply as services are used. Base shipping fees apply once per package, plus the item fee per item. Rates subject to change with 30 days' written notice.
+                </p>
               </div>
             </div>
 
