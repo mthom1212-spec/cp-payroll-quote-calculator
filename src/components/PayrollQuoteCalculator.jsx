@@ -108,17 +108,6 @@ export default function PayrollQuoteCalculator() {
   const [toast, setToast] = useState(null);
   const showToast = (message, kind = 'success') => setToast({ message, kind, id: Date.now() });
 
-  // First-run onboarding banner — dismissible, remembered in localStorage.
-  const [showOnboardBanner, setShowOnboardBanner] = useState(() => {
-    try {
-      return localStorage.getItem('cpp-quote-builder:onboard-dismissed') !== '1';
-    } catch { return true; }
-  });
-  const dismissOnboardBanner = () => {
-    setShowOnboardBanner(false);
-    try { localStorage.setItem('cpp-quote-builder:onboard-dismissed', '1'); } catch {}
-  };
-
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedQuotes));
@@ -443,8 +432,8 @@ export default function PayrollQuoteCalculator() {
             {/* Left: sidebar (Hero Total sticky, Quote Settings scrolls with page) */}
             <div className="lg:col-span-4 space-y-4">
 
-              {/* Hero Total — dark navy card, sticks to top on scroll */}
-              <div className="lg:sticky lg:top-6 lg:z-10 relative overflow-hidden rounded-2xl shadow-warm-md text-white"
+              {/* Hero Total — dark navy card at top of sidebar */}
+              <div className="relative overflow-hidden rounded-2xl shadow-warm-md text-white"
                    style={{ background: 'linear-gradient(180deg, #004F71 0%, #003950 100%)', borderLeft: '3px solid #C49A6C' }}>
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 80% at 100% 0%, rgba(196,154,108,0.28), transparent 55%)' }} aria-hidden="true"></div>
                 <div className="relative p-5">
@@ -748,27 +737,6 @@ export default function PayrollQuoteCalculator() {
 
             {/* Right: Module Selector Cards */}
             <div className="lg:col-span-8">
-              {/* First-run onboarding banner (dismissible) */}
-              {showOnboardBanner && (
-                <div className="mb-4 flex items-start gap-3 rounded-xl border border-brand-gold/25 border-l-[3px] border-l-brand-gold bg-gradient-to-r from-brand-gold/10 to-transparent px-4 py-3 text-sm">
-                  <span className="text-xl leading-none pt-0.5" aria-hidden="true">📘</span>
-                  <div className="flex-1">
-                    <span className="font-semibold text-brand-navy">New to the Quote Builder?</span>
-                    {' '}
-                    <span className="text-slate-600">
-                      Click the <a href={REP_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="underline text-brand-navy hover:text-brand-gold font-medium">?</a> at the top for the quick guide — hidden features, overrides, and troubleshooting.
-                    </span>
-                  </div>
-                  <button
-                    onClick={dismissOnboardBanner}
-                    className="text-slate-400 hover:text-slate-600 font-bold text-lg leading-none flex-shrink-0"
-                    aria-label="Dismiss"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-
               {/* Tab bar */}
               {!sCorpMode ? (
                 <div className="mb-4">

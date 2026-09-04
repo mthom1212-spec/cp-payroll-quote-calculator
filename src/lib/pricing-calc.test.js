@@ -774,4 +774,84 @@ describe('end-to-end mid-size company scenario', () => {
     const expectedSetup = 750 + 250 + (150 * 3 + 0.10 * 26);
     near(t.totalSetup, expectedSetup);
   });
+
+  it('Complex real quote: 40 emp + 8 1099s, all core modules, 401k opt-out, 10% discount, monthly frequency', () => {
+    const state = baseState({
+      employeeCount: 40,
+      count1099: '8',
+      frequency: 'monthly',
+      selectedModules: { payroll: true, tlm: true, hcm: true, aca: true, fullService: true },
+      selectedAncillary: { retirement: true, cobra: true },
+      discountPercent: 10,
+      discountOptOut: { retirement: true }, // 401k excluded from discount
+    });
+
+    const t = calculateTotals(state);
+    // Payroll headcount = 40 + 8 = 48 (1099s included)
+    // Monthly multiplier = 26/12 ≈ 2.1667
+    const m = 26 / 12;
+    const payrollPP = 48 * m + 2.70 * m * 48;          // $48 base + $2.70/emp × 48
+    const tlmPP = Math.max(2.70 * m * 48, 50 * m);     // above min
+    const hcmPP = Math.max(2.70 * m * 48, 60 * m);     // above min
+    const acaPP = 0.60 * m * 40;                        // ACA excludes 1099s
+    const fullSvcPP = Math.max(4.50 * m * 48, 50 * m); // above min
+    const retirementPP = Math.max(0.75 * m * 40, 40 * m); // 401k min $40 kicks in at monthly
+    const cobraPP = Math.max(0.50 * m * 48, 40 * m);   // COBRA min $40 also applies
+
+    // Discountable = everything except retirement
+    const discountable = payrollPP + tlmPP + hcmPP + acaPP + fullSvcPP + cobraPP;
+    const nonDiscountable = retirementPP;
+    const expectedDiscount = discountable * 0.10;
+    const expectedFinal = discountable + nonDiscountable - expectedDiscount;
+
+    near(t.finalPerPayroll, expectedFinal);
+
+    // Year-end includes 1099s combined with W-2s for payroll; ACA uses W-2 only
+    near(t.totalYearEnd, (150 + 6.95 * (40 + 8)) + (150 + 6.95 * 40));
+  });
+
+  it('Combined overrides: rate override + annual forms override both applied', () => {
+    const state = baseState({
+      selectedModules: { payroll: true },
+      w2Count: '25',
+      count1099: '5',
+      payrollYearEndRateOverride: 5.00,      // Custom rate
+      annualFormsOverride: 100,               // Custom form count (ignores w2 + 1099)
+    });
+
+    const t = calculateTotals(state);
+    // Year-end should use the form count override AND the rate override
+    // = $150 base + $5.00 × 100 = $650
+    near(t.totalYearEnd, 150 + 5.00 * 100);
+  });
+
+  it('Benefit EDI with COBRA bundle + discount opt-out', () => {
+    const state = baseState({
+      employeeCount: 200,
+      selectedModules: { payroll: true },
+      benefitEdi: { enabled: true, feeds: 2, cobraBundle: true },
+      discountPercent: 15,
+      discountOptOut: { benefitEdi: true },
+    });
+
+    const t = calculateTotals(state);
+    // Benefit EDI bundle rate = $0.90 × 200 = $180 (above $40 min)
+    // Payroll = $48 + $2.70 × 200 = $588
+    // Discount applies to payroll only (EDI opted out)
+    const payrollPP = 48 + 2.70 * 200;
+    const ediPP = 0.90 * 200;
+    const expectedFinal = payrollPP * 0.85 + ediPP;
+    near(t.finalPerPayroll, expectedFinal);
+  });
+
+  it('Empty quote (no modules) returns zero everything', () => {
+    const state = baseState({
+      selectedModules: {},
+    });
+    const t = calculateTotals(state);
+    expect(t.finalPerPayroll).toBe(0);
+    expect(t.finalAnnual).toBe(0);
+    expect(t.totalSetup).toBe(0);
+    expect(t.totalYearEnd).toBe(0);
+  });
 });
