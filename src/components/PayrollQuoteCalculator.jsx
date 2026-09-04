@@ -38,6 +38,9 @@ export default function PayrollQuoteCalculator() {
   //   clientFacing = false → internal Sales Summary (revenue breakdown + CSV)
   const [clientFacing, setClientFacing] = useState(true);
 
+  // Right-column tab: 'modules' | 'addons' | 'overrides'
+  const [activeTab, setActiveTab] = useState('modules');
+
   const [showRepInfo, setShowRepInfo] = useState(false);
   const [repName, setRepName] = useState('');
   const [repPhone, setRepPhone] = useState('');
@@ -437,11 +440,11 @@ export default function PayrollQuoteCalculator() {
         <section className="no-print mb-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {/* Left: Sticky sidebar (hero total + Quote Settings) */}
-            <div className="lg:col-span-4 lg:sticky lg:top-6 lg:self-start space-y-4">
+            {/* Left: sidebar (Hero Total sticky, Quote Settings scrolls with page) */}
+            <div className="lg:col-span-4 space-y-4">
 
-              {/* Hero Total — dark navy card with gold accent */}
-              <div className="relative overflow-hidden rounded-2xl shadow-warm-md text-white"
+              {/* Hero Total — dark navy card, sticks to top on scroll */}
+              <div className="lg:sticky lg:top-6 lg:z-10 relative overflow-hidden rounded-2xl shadow-warm-md text-white"
                    style={{ background: 'linear-gradient(180deg, #004F71 0%, #003950 100%)', borderLeft: '3px solid #C49A6C' }}>
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 80% at 100% 0%, rgba(196,154,108,0.28), transparent 55%)' }} aria-hidden="true"></div>
                 <div className="relative p-5">
@@ -455,20 +458,25 @@ export default function PayrollQuoteCalculator() {
                   </div>
                   <div className="mt-2 h-[2px] w-10 rounded-sm" style={{ background: '#C49A6C' }}></div>
 
-                  <div className="mt-4 pt-3 space-y-1.5 text-xs" style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-                    <div className="flex justify-between">
-                      <span className="uppercase tracking-wider text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Modules</span>
-                      <span className="font-semibold text-white tabular-nums">{activeModuleCount}</span>
+                  <div className="mt-4 pt-3 grid grid-cols-3 gap-2 text-[10px]" style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                    <div>
+                      <div className="uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Modules</div>
+                      <div className="font-semibold text-white tabular-nums text-sm mt-0.5">{activeModuleCount}</div>
                     </div>
-                    {!clientFacing && (
-                      <div className="flex justify-between">
-                        <span className="uppercase tracking-wider text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Annual Est.</span>
-                        <span className="font-semibold text-white tabular-nums">{formatMoney(totals.finalAnnual)}</span>
+                    {!clientFacing ? (
+                      <div>
+                        <div className="uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Annual Est.</div>
+                        <div className="font-semibold text-white tabular-nums text-sm mt-0.5">{formatMoney(totals.finalAnnual)}</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Discount</div>
+                        <div className="font-semibold text-white tabular-nums text-sm mt-0.5">{discountPercent > 0 ? `${discountPercent}%` : '—'}</div>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="uppercase tracking-wider text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>One-time Setup</span>
-                      <span className="font-semibold text-white tabular-nums">{formatMoney(totals.totalSetup)}</span>
+                    <div className="text-right">
+                      <div className="uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Setup</div>
+                      <div className="font-semibold text-white tabular-nums text-sm mt-0.5">{formatMoney(totals.totalSetup)}</div>
                     </div>
                   </div>
                 </div>
@@ -629,130 +637,7 @@ export default function PayrollQuoteCalculator() {
                     <p className="text-[11px] text-slate-400 mt-1">Applies to recurring per-payroll fees only. Excluded modules show no <span className="text-emerald-600 font-bold">*</span> on the quote.</p>
                   </div>
 
-                  {/* Advanced & Overrides — collapsible group of rarely-touched fields */}
-                  <details className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 group" open={
-                    w2Count !== '' || count1099 !== '' || payrollYearEndRateOverride !== null || annualFormsOverride !== '' || sCorpMode
-                  }>
-                    <summary className="cursor-pointer list-none flex items-center gap-2 text-xs font-semibold text-brand-navy uppercase tracking-wider">
-                      <span className="text-brand-gold font-bold text-sm group-open:hidden">+</span>
-                      <span className="text-brand-gold font-bold text-sm hidden group-open:inline">−</span>
-                      <span>Advanced &amp; Overrides</span>
-                      <span className="ml-auto font-normal normal-case tracking-normal text-[10px] text-slate-400">turnover · rates · S-Corp</span>
-                    </summary>
-                    <div className="mt-3 pt-3 border-t border-dashed border-stone-300 space-y-3">
-
-                      {/* Approximate W-2s */}
-                      <div>
-                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                          Approximate W-2s <span className="normal-case font-normal text-slate-400 ml-1">(optional)</span>
-                          <Tooltip>Use when the client's annual W-2 count exceeds current headcount — high-turnover shops, restaurants, seasonal. Feeds W-2, 1099, ACA, and 360° 401(k) fees.</Tooltip>
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={w2Count}
-                          onChange={(e) => setW2Count(e.target.value)}
-                          placeholder={`Defaults to employee count (${employeeCount})`}
-                          className="w-full border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                        />
-                      </div>
-
-                      {/* Approximate 1099s */}
-                      <div>
-                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                          Approximate 1099s <span className="normal-case font-normal text-slate-400 ml-1">(optional)</span>
-                          <Tooltip>1099 contractors add to per-payroll fees for Payroll, TLM, HCM, and Full Service. Combined with W-2s at year-end. Does not affect ACA or 401(k).</Tooltip>
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={count1099}
-                          onChange={(e) => setCount1099(e.target.value)}
-                          placeholder="Defaults to 0"
-                          className="w-full border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                        />
-                      </div>
-
-                      {/* W-2/1099 Rate Override */}
-                      <div>
-                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                          W-2/1099 Rate <span className="normal-case font-normal text-slate-400 ml-1">(per form)</span>
-                          <Tooltip>Default {formatMoney(PRICING_CONFIG.payroll.yearEndPerItem)}/form. Lower it to discount the year-end W-2/1099 rate for a competitive quote.</Tooltip>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400 text-sm">$</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.05"
-                            value={payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : PRICING_CONFIG.payroll.yearEndPerItem}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value);
-                              setPayrollYearEndRateOverride(isNaN(val) ? null : val);
-                            }}
-                            className="flex-1 border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                          />
-                          {payrollYearEndRateOverride !== null && (
-                            <button
-                              onClick={() => setPayrollYearEndRateOverride(null)}
-                              className="text-[10px] text-brand-navy hover:text-brand-gold font-semibold"
-                            >
-                              Reset
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Annual W-2/1099 Forms Override */}
-                      <div>
-                        <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                          Annual W-2/1099 Forms <span className="normal-case font-normal text-slate-400 ml-1">(override)</span>
-                          <Tooltip>Set when the client's total annual form count exceeds per-payroll headcount (heavy turnover). Applies to W-2, 1099, and ACA year-end fees.</Tooltip>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={annualFormsOverride}
-                            onChange={(e) => setAnnualFormsOverride(e.target.value)}
-                            placeholder="Blank = use W-2 + 1099 counts"
-                            className="flex-1 border border-stone-300 rounded-md px-2.5 py-1.5 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
-                          />
-                          {annualFormsOverride !== '' && (
-                            <button
-                              onClick={() => setAnnualFormsOverride('')}
-                              className="text-[10px] text-brand-navy hover:text-brand-gold font-semibold"
-                            >
-                              Reset
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Quote type: S-Corp switch (rarely used) */}
-                      <div className="bg-white border-l-2 border-brand-gold rounded-r px-3 py-2 mt-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center">
-                              Quote Type
-                              <Tooltip>Standard = multi-module quotes for most clients. S-Corp Owner-Only = flat-rate mode for solo-owner S-Corps that only need December payroll.</Tooltip>
-                            </div>
-                            <div className="text-sm font-semibold text-brand-navy mt-0.5">
-                              {sCorpMode ? 'S-Corp Owner-Only' : 'Standard'}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={toggleSCorpMode}
-                            className="text-[11px] font-semibold text-brand-goldDark hover:text-brand-gold transition-colors underline decoration-dotted underline-offset-2"
-                          >
-                            Switch to {sCorpMode ? 'Standard' : 'S-Corp'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </details>
+                  {/* Advanced overrides moved to the Overrides tab (right column) */}
 
                   <hr className="border-stone-100" />
 
@@ -831,164 +716,7 @@ export default function PayrollQuoteCalculator() {
                     )}
                   </div>
 
-                  <hr className="border-stone-100" />
-
-                  {/* Recurring Add-ons Toggle (hidden in S-Corp mode) */}
-                  {!sCorpMode && <div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recurring Add-ons</label>
-                      <Toggle
-                        checked={showAncillary}
-                        onChange={() => setShowAncillary(prev => !prev)}
-                        label="Toggle ancillary services"
-                      />
-                    </div>
-                    {showAncillary && (
-                      <div className="mt-3 space-y-2">
-                        {Object.values(ANCILLARY_PRICING).map((svc) => (
-                          <div key={svc.id}>
-                            <label className="flex items-start gap-2 cursor-pointer group">
-                              <input
-                                type="checkbox"
-                                checked={selectedAncillary[svc.id]}
-                                onChange={() => toggleAncillary(svc.id)}
-                                className="w-4 h-4 rounded mt-0.5 cursor-pointer"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
-                                <span className="block text-[10px] text-slate-400">{svc.monthlyBilling ? `${formatMoney(svc.monthlyPerUser)}/user/month (billed monthly)` : `${formatMoney(svc.pepm)}/emp per payroll${svc.minimum > 0 ? ` (Min ${formatMoney(svc.minimum)})` : ''}`}</span>
-                              </div>
-                            </label>
-                            {selectedAncillary[svc.id] && (
-                              <>
-                                <div className="ml-6 mt-1 flex items-center gap-2 text-[10px]">
-                                  <label className="text-slate-400 font-semibold uppercase tracking-wider">Setup</label>
-                                  <Toggle
-                                    checked={setupFees[svc.id]?.included || false}
-                                    onChange={() => toggleSetup(svc.id)}
-                                    label={`Toggle setup fee for ${svc.name}`}
-                                  />
-                                  {setupFees[svc.id]?.included ? (
-                                    <div className="flex items-center gap-0.5">
-                                      <span className="text-slate-400">$</span>
-                                      <input
-                                        type="number"
-                                        value={setupFees[svc.id]?.amount || 0}
-                                        onChange={(e) => updateSetupAmount(svc.id, e.target.value)}
-                                        className="w-16 text-right text-xs border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-400 italic">Waived</span>
-                                  )}
-                                </div>
-                                {svc.id === 'expense' && (
-                                  <div className="ml-6 mt-1 flex items-center gap-2 text-[10px]">
-                                    <label className="text-brand-navy/70 font-semibold uppercase tracking-wider">Users</label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={expenseUserCount}
-                                      onChange={(e) => setExpenseUserCount(e.target.value)}
-                                      placeholder={`${employeeCount}`}
-                                      className="w-16 text-center text-xs border border-stone-300 rounded-md px-1.5 py-0.5 focus:ring-1 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
-                                    />
-                                    <span className="text-slate-400 italic">Defaults to employee count</span>
-                                  </div>
-                                )}
-                                {(svc.id === 'retirement' || svc.id === 'onboarding') && (
-                                  <div className="ml-6 mt-1 flex items-center gap-3 text-[10px]">
-                                    <div className="flex items-center gap-1">
-                                      <label className="text-amber-600 font-semibold uppercase tracking-wider">Rate $</label>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        step="0.05"
-                                        value={ancillaryRateOverrides[svc.id]?.pepm ?? svc.pepm}
-                                        onChange={(e) => {
-                                          const val = parseFloat(e.target.value);
-                                          setAncillaryRateOverrides(prev => ({
-                                            ...prev,
-                                            [svc.id]: { ...prev[svc.id], pepm: isNaN(val) ? null : val },
-                                          }));
-                                        }}
-                                        className="w-14 text-right text-xs border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
-                                      />
-                                      <span className="text-slate-400">/emp</span>
-                                    </div>
-                                    {svc.minimum > 0 && (
-                                      <div className="flex items-center gap-1">
-                                        <label className="text-amber-600 font-semibold uppercase tracking-wider">Min $</label>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          step="1"
-                                          value={ancillaryRateOverrides[svc.id]?.minimum ?? svc.minimum}
-                                          onChange={(e) => {
-                                            const val = parseFloat(e.target.value);
-                                            setAncillaryRateOverrides(prev => ({
-                                              ...prev,
-                                              [svc.id]: { ...prev[svc.id], minimum: isNaN(val) ? null : val },
-                                            }));
-                                          }}
-                                          className="w-14 text-right text-xs border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
-                                        />
-                                      </div>
-                                    )}
-                                    {(ancillaryRateOverrides[svc.id]?.pepm != null || ancillaryRateOverrides[svc.id]?.minimum != null) && (
-                                      <button
-                                        onClick={() => setAncillaryRateOverrides(prev => {
-                                          const next = { ...prev };
-                                          delete next[svc.id];
-                                          return next;
-                                        })}
-                                        className="text-[9px] text-amber-600 hover:text-amber-800 underline"
-                                      >
-                                        Reset
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                                {svc.id === 'retirement' && (
-                                  <label className="ml-6 mt-1 flex items-center gap-2 text-[10px] cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={!!discountOptOut.retirement}
-                                      onChange={() => setDiscountOptOut(prev => ({ ...prev, retirement: !prev.retirement }))}
-                                      className="w-3.5 h-3.5 rounded cursor-pointer"
-                                    />
-                                    <span className="text-slate-600 font-medium">Do Not Apply Discount</span>
-                                    <span className="text-slate-400 italic">— exclude 360° 401(k) from the recurring discount</span>
-                                  </label>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        ))}
-                        <div className="pt-1 border-t border-stone-100">
-                          <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold mb-1.5">Usage-Based (when incurred)</p>
-                          {Object.values(ANCILLARY_USAGE).map((svc) => (
-                            <label key={svc.id} className="flex items-start gap-2 cursor-pointer group">
-                              <input
-                                type="checkbox"
-                                checked={selectedAncillary[svc.id]}
-                                onChange={() => toggleAncillary(svc.id)}
-                                className="w-4 h-4 rounded mt-0.5 cursor-pointer"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-navy transition-colors">{svc.name}</span>
-                                {svc.rates.map((r, i) => (
-                                  <span key={i} className="block text-[10px] text-slate-400">{r}</span>
-                                ))}
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>}
-
-                  {/* S-Corp Setup Fee — only shown when S-Corp mode is active (toggle is in Advanced) */}
+                  {/* S-Corp Setup Fee — only shown when S-Corp mode is active (toggle is in Overrides tab) */}
                   {sCorpMode && (
                     <div className="bg-brand-gold/5 border-l-2 border-brand-gold rounded-r px-3 py-2.5">
                       <p className="text-[10px] font-semibold text-brand-goldDark uppercase tracking-wider">S-Corp Setup Fee</p>
@@ -1041,17 +769,54 @@ export default function PayrollQuoteCalculator() {
                 </div>
               )}
 
-              <div className="mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">
-                    {sCorpMode ? 'Owner-Only S-Corp Payroll' : 'Service Modules'}
-                  </h2>
-                  {!sCorpMode && (
-                    <span className="text-[10px] text-slate-400">{activeModuleCount} of {Object.keys(PRICING_CONFIG).length} selected</span>
-                  )}
+              {/* Tab bar */}
+              {!sCorpMode ? (
+                <div className="mb-4">
+                  <div className="flex items-end gap-1 border-b border-stone-200" role="tablist" aria-label="Quote configuration tabs">
+                    {[
+                      { id: 'modules', label: 'Service Modules', count: activeModuleCount, total: Object.keys(PRICING_CONFIG).length },
+                      { id: 'addons', label: 'Add-ons & Extras', count: activeAncillaryCount + (stateTaxId.enabled ? 1 : 0) + (pytd.enabled ? 1 : 0) + (benefitEdi.enabled ? 1 : 0) },
+                      { id: 'overrides', label: 'Overrides', count: (w2Count !== '' ? 1 : 0) + (count1099 !== '' ? 1 : 0) + (payrollYearEndRateOverride !== null ? 1 : 0) + (annualFormsOverride !== '' ? 1 : 0) },
+                    ].map(tab => {
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          role="tab"
+                          aria-selected={isActive}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`relative px-4 py-2.5 text-sm font-semibold transition-colors -mb-px border-b-2 ${
+                            isActive
+                              ? 'text-brand-navy border-brand-gold'
+                              : 'text-slate-500 hover:text-brand-navy border-transparent'
+                          }`}
+                        >
+                          <span>{tab.label}</span>
+                          {tab.count > 0 && (
+                            <span className={`ml-2 inline-flex items-center justify-center min-w-[20px] h-5 rounded-full text-[10px] font-bold px-1.5 ${
+                              isActive
+                                ? 'bg-brand-navy text-white'
+                                : 'bg-stone-200 text-slate-600'
+                            }`}>
+                              {tab.total ? `${tab.count}/${tab.total}` : tab.count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="gold-hairline"></div>
-              </div>
+              ) : (
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">Owner-Only S-Corp Payroll</h2>
+                  </div>
+                  <div className="gold-hairline"></div>
+                </div>
+              )}
+
+              {/* Tab: Service Modules (also shown in S-Corp mode as the only module) */}
+              {(sCorpMode || activeTab === 'modules') && (
               <div className="space-y-4">
                 {Object.values(PRICING_CONFIG).map((module) => {
                   if (sCorpMode && module.id !== 'payroll') return null;
@@ -1247,12 +1012,168 @@ export default function PayrollQuoteCalculator() {
                     </div>
                   );
                 })}
+              </div>
+              )}
+
+              {/* Tab: Add-ons & Extras — recurring ancillary + usage-based + one-time specialty fees */}
+              {!sCorpMode && activeTab === 'addons' && (
+              <div className="space-y-6">
+
+                {/* Recurring Add-ons (ancillary per-payroll services) */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">Recurring Add-ons</h3>
+                    <span className="text-[10px] text-slate-400">Per-payroll services beyond core modules</span>
+                  </div>
+                  <div className="gold-hairline"></div>
+
+                  <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                    {Object.values(ANCILLARY_PRICING).map((svc) => (
+                      <div key={svc.id} className={`rounded-xl border transition-all p-3 ${
+                        selectedAncillary[svc.id]
+                          ? 'border-brand-navy/40 bg-white ring-2 ring-brand-navy/10 shadow-warm-sm'
+                          : 'border-stone-200 bg-white hover:border-stone-300'
+                      }`}>
+                        <label className="flex items-start gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={selectedAncillary[svc.id]}
+                            onChange={() => toggleAncillary(svc.id)}
+                            className="w-4 h-4 rounded mt-0.5 cursor-pointer flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-semibold text-slate-800 group-hover:text-brand-navy transition-colors">{svc.name}</span>
+                            <span className="block text-[11px] text-slate-500 mt-0.5">{svc.monthlyBilling ? `${formatMoney(svc.monthlyPerUser)}/user/month · billed monthly` : `${formatMoney(svc.pepm)}/emp per payroll${svc.minimum > 0 ? ` (Min ${formatMoney(svc.minimum)})` : ''}`}</span>
+                          </div>
+                        </label>
+                        {selectedAncillary[svc.id] && (
+                          <div className="mt-3 pt-2.5 border-t border-dashed border-stone-200 space-y-2">
+                            <div className="flex items-center gap-2 text-[10px]">
+                              <label className="text-slate-500 font-semibold uppercase tracking-wider">Setup</label>
+                              <Toggle
+                                checked={setupFees[svc.id]?.included || false}
+                                onChange={() => toggleSetup(svc.id)}
+                                label={`Toggle setup fee for ${svc.name}`}
+                              />
+                              {setupFees[svc.id]?.included ? (
+                                <div className="flex items-center gap-0.5">
+                                  <span className="text-slate-400">$</span>
+                                  <input
+                                    type="number"
+                                    value={setupFees[svc.id]?.amount || 0}
+                                    onChange={(e) => updateSetupAmount(svc.id, e.target.value)}
+                                    className="w-16 text-right text-xs border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">Waived</span>
+                              )}
+                            </div>
+                            {svc.id === 'expense' && (
+                              <div className="flex items-center gap-2 text-[10px]">
+                                <label className="text-brand-navy/70 font-semibold uppercase tracking-wider">Users</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={expenseUserCount}
+                                  onChange={(e) => setExpenseUserCount(e.target.value)}
+                                  placeholder={`${employeeCount}`}
+                                  className="w-16 text-center text-xs border border-stone-300 rounded-md px-1.5 py-0.5 focus:ring-1 focus:ring-brand-navy/30 focus:border-brand-navy outline-none"
+                                />
+                                <span className="text-slate-400 italic">Defaults to employee count</span>
+                              </div>
+                            )}
+                            {(svc.id === 'retirement' || svc.id === 'onboarding') && (
+                              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[10px]">
+                                <div className="flex items-center gap-1">
+                                  <label className="text-amber-600 font-semibold uppercase tracking-wider">Rate $</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.05"
+                                    value={ancillaryRateOverrides[svc.id]?.pepm ?? svc.pepm}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value);
+                                      setAncillaryRateOverrides(prev => ({ ...prev, [svc.id]: { ...prev[svc.id], pepm: isNaN(val) ? null : val } }));
+                                    }}
+                                    className="w-14 text-right text-xs border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
+                                  />
+                                  <span className="text-slate-400">/emp</span>
+                                </div>
+                                {svc.minimum > 0 && (
+                                  <div className="flex items-center gap-1">
+                                    <label className="text-amber-600 font-semibold uppercase tracking-wider">Min $</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={ancillaryRateOverrides[svc.id]?.minimum ?? svc.minimum}
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        setAncillaryRateOverrides(prev => ({ ...prev, [svc.id]: { ...prev[svc.id], minimum: isNaN(val) ? null : val } }));
+                                      }}
+                                      className="w-14 text-right text-xs border-b border-amber-300 focus:border-amber-500 outline-none bg-transparent py-0.5"
+                                    />
+                                  </div>
+                                )}
+                                {(ancillaryRateOverrides[svc.id]?.pepm != null || ancillaryRateOverrides[svc.id]?.minimum != null) && (
+                                  <button
+                                    onClick={() => setAncillaryRateOverrides(prev => { const next = { ...prev }; delete next[svc.id]; return next; })}
+                                    className="text-[9px] text-amber-600 hover:text-amber-800 underline"
+                                  >Reset</button>
+                                )}
+                              </div>
+                            )}
+                            {svc.id === 'retirement' && (
+                              <label className="flex items-center gap-2 text-[10px] cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={!!discountOptOut.retirement}
+                                  onChange={() => setDiscountOptOut(prev => ({ ...prev, retirement: !prev.retirement }))}
+                                  className="w-3.5 h-3.5 rounded cursor-pointer"
+                                />
+                                <span className="text-slate-600 font-medium">Do Not Apply Discount</span>
+                              </label>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Usage-based ancillary — informational only */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">Usage-Based (When Incurred)</h3>
+                    <span className="text-[10px] text-slate-400">Informational rates — not in totals</span>
+                  </div>
+                  <div className="gold-hairline"></div>
+                  <div className="mt-3 grid sm:grid-cols-2 gap-2">
+                    {Object.values(ANCILLARY_USAGE).map((svc) => (
+                      <label key={svc.id} className="flex items-start gap-2 cursor-pointer p-2 rounded-lg hover:bg-stone-50 border border-transparent hover:border-stone-200">
+                        <input
+                          type="checkbox"
+                          checked={selectedAncillary[svc.id]}
+                          onChange={() => toggleAncillary(svc.id)}
+                          className="w-4 h-4 rounded mt-0.5 cursor-pointer flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-semibold text-slate-700">{svc.name}</span>
+                          {svc.rates.map((r, i) => (
+                            <span key={i} className="block text-[10px] text-slate-400">{r}</span>
+                          ))}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
                 {/* One-Time & Specialty Fees section header */}
-                <div className="pt-4 mb-1">
+                <div className="pt-1 mb-1">
                   <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">One-Time &amp; Specialty Fees</h2>
-                    <span className="text-[10px] text-slate-400">Billed at onboarding or as-used</span>
+                    <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">One-Time &amp; Specialty Fees</h3>
+                    <span className="text-[10px] text-slate-400">Billed at onboarding</span>
                   </div>
                   <div className="gold-hairline"></div>
                 </div>
@@ -1445,6 +1366,130 @@ export default function PayrollQuoteCalculator() {
                   )}
                 </div>
               </div>
+              )}
+
+              {/* Tab: Overrides — advanced fields for turnover / competitive quotes / S-Corp */}
+              {!sCorpMode && activeTab === 'overrides' && (
+              <div className="space-y-6">
+
+                {/* Employee & Form Counts */}
+                <div className="bg-white border border-stone-200 rounded-xl p-4">
+                  <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em] mb-1">Employee &amp; Form Counts</h3>
+                  <p className="text-[11px] text-slate-400 mb-3">Override the default headcount used in billing.</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                        Approximate W-2s
+                        <Tooltip>Use when the client's annual W-2 count exceeds current headcount — high-turnover shops, restaurants, seasonal. Feeds W-2, 1099, ACA, and 360° 401(k) fees.</Tooltip>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={w2Count}
+                        onChange={(e) => setW2Count(e.target.value)}
+                        placeholder={`Defaults to ${employeeCount}`}
+                        className="w-full border border-stone-300 rounded-md px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                        Approximate 1099s
+                        <Tooltip>1099 contractors add to per-payroll fees for Payroll, TLM, HCM, and Full Service. Combined with W-2s at year-end. Does not affect ACA or 401(k).</Tooltip>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={count1099}
+                        onChange={(e) => setCount1099(e.target.value)}
+                        placeholder="Defaults to 0"
+                        className="w-full border border-stone-300 rounded-md px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Year-End Rate & Form Count */}
+                <div className="bg-white border border-stone-200 rounded-xl p-4">
+                  <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em] mb-1">Year-End Rate &amp; Forms</h3>
+                  <p className="text-[11px] text-slate-400 mb-3">Adjust the W-2/1099 processing rate or total form count.</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                        W-2/1099 Rate <span className="normal-case font-normal text-slate-400 ml-1">(per form)</span>
+                        <Tooltip>Default {formatMoney(PRICING_CONFIG.payroll.yearEndPerItem)}/form. Lower it to discount the year-end W-2/1099 rate for a competitive quote.</Tooltip>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400 text-sm">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.05"
+                          value={payrollYearEndRateOverride !== null ? payrollYearEndRateOverride : PRICING_CONFIG.payroll.yearEndPerItem}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            setPayrollYearEndRateOverride(isNaN(val) ? null : val);
+                          }}
+                          className="flex-1 border border-stone-300 rounded-md px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                        />
+                        {payrollYearEndRateOverride !== null && (
+                          <button
+                            onClick={() => setPayrollYearEndRateOverride(null)}
+                            className="text-[11px] text-brand-navy hover:text-brand-gold font-semibold"
+                          >Reset</button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="flex items-center text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                        Annual W-2/1099 Forms
+                        <Tooltip>Set when the client's total annual form count exceeds per-payroll headcount (heavy turnover). Applies to W-2, 1099, and ACA year-end fees.</Tooltip>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={annualFormsOverride}
+                          onChange={(e) => setAnnualFormsOverride(e.target.value)}
+                          placeholder="Blank = use W-2 + 1099"
+                          className="flex-1 border border-stone-300 rounded-md px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy outline-none transition"
+                        />
+                        {annualFormsOverride !== '' && (
+                          <button
+                            onClick={() => setAnnualFormsOverride('')}
+                            className="text-[11px] text-brand-navy hover:text-brand-gold font-semibold"
+                          >Reset</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quote Type — S-Corp switch */}
+                <div className="bg-white border border-stone-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em] flex items-center">
+                        Quote Type
+                        <Tooltip>Standard = multi-module quotes for most clients. S-Corp Owner-Only = flat-rate mode for solo-owner S-Corps that only need December payroll.</Tooltip>
+                      </h3>
+                      <p className="text-sm text-brand-navy font-semibold mt-1">
+                        {sCorpMode ? 'S-Corp Owner-Only' : 'Standard'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleSCorpMode}
+                      className="text-xs font-semibold text-brand-goldDark hover:text-brand-gold transition-colors underline decoration-dotted underline-offset-2"
+                    >
+                      Switch to {sCorpMode ? 'Standard' : 'S-Corp Owner-Only'}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+              )}
+
             </div>
           </div>
         </section>
