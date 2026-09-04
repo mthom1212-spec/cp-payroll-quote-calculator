@@ -1841,29 +1841,35 @@ export default function PayrollQuoteCalculator() {
 
         {/* Page 2: Additional Services & Rates (Client Facing Only, separate page in print) */}
         {clientFacing && !sCorpMode && (() => {
-          // Build the annual recap: for each selected module + ancillary, sum per-payroll and annualized.
+          // Build the annual recap. Each row shows the AFTER-DISCOUNT amount so
+          // reps can drop the annual figure directly into Salesforce.
           const periods = FREQUENCIES[frequency].periods;
+          const factorFor = (id) => (discountPercent > 0 && !discountOptOut[id]) ? (1 - discountPercent / 100) : 1;
           const recap = [];
           Object.values(PRICING_CONFIG).forEach(m => {
             if (selectedModules[m.id]) {
               const c = calculateModuleCost(m.id);
-              recap.push({ name: m.name, perPayroll: c.perPayroll, annual: c.perPayroll * periods });
+              const f = factorFor(m.id);
+              const pp = c.perPayroll * f;
+              recap.push({ id: m.id, name: m.name, perPayroll: pp, annual: pp * periods, discounted: f < 1 });
             }
           });
           Object.values(ANCILLARY_PRICING).forEach(s => {
             if (selectedAncillary[s.id]) {
               const c = calculateModuleCost(s.id, ANCILLARY_PRICING);
-              recap.push({ name: s.name, perPayroll: c.perPayroll, annual: c.perPayroll * periods, monthly: s.monthlyBilling });
+              const f = factorFor(s.id);
+              const pp = c.perPayroll * f;
+              recap.push({ id: s.id, name: s.name, perPayroll: pp, annual: pp * periods, monthly: s.monthlyBilling, discounted: f < 1 });
             }
           });
           if (benefitEdi.enabled) {
-            recap.push({ name: `Benefit Integration (EDI)${benefitEdi.cobraBundle ? ' + COBRA' : ''}`, perPayroll: benefitEdiRecurring.perPayroll, annual: benefitEdiRecurring.annual });
+            const f = factorFor('benefitEdi');
+            const pp = benefitEdiRecurring.perPayroll * f;
+            recap.push({ id: 'benefitEdi', name: `Benefit Integration (EDI)${benefitEdi.cobraBundle ? ' + COBRA' : ''}`, perPayroll: pp, annual: pp * periods, discounted: f < 1 });
           }
-          const recapTotalPP = recap.reduce((s, r) => s + r.perPayroll, 0);
-          const recapTotalAnnual = recap.reduce((s, r) => s + r.annual, 0);
-          const discountApplied = discountPercent > 0 ? recapTotalPP * (discountPercent / 100) : 0;
-          const finalPP = recapTotalPP - discountApplied;
-          const finalAnnual = recapTotalAnnual - (discountApplied * periods);
+          const finalPP = recap.reduce((s, r) => s + r.perPayroll, 0);
+          const finalAnnual = recap.reduce((s, r) => s + r.annual, 0);
+          const anyDiscounted = recap.some(r => r.discounted);
           const digitalPosterEnabled = !!selectedAncillary.digitalLaborPoster;
 
           return (
@@ -1919,6 +1925,7 @@ export default function PayrollQuoteCalculator() {
                         <td className="py-2 px-3 text-slate-700 font-medium">
                           {r.name}
                           {r.monthly && <span className="ml-2 text-[9px] text-slate-400 italic">(billed monthly)</span>}
+                          {r.discounted && <span className="ml-1.5 text-emerald-600 font-bold" title={`${discountPercent}% discount applied`}>★</span>}
                         </td>
                         <td className="py-2 px-3 text-right text-slate-700">{formatMoney(r.perPayroll)}</td>
                         <td className="py-2 px-3 text-right text-brand-navy font-semibold">{formatMoney(r.annual)}</td>
@@ -1926,13 +1933,6 @@ export default function PayrollQuoteCalculator() {
                     ))}
                   </tbody>
                   <tfoot className="border-t-2 border-brand-navy bg-brand-navy/5">
-                    {discountApplied > 0 && (
-                      <tr className="tabular-nums text-xs">
-                        <td className="py-2 px-3 text-emerald-700 font-semibold">Recurring Discount ({discountPercent}%)</td>
-                        <td className="py-2 px-3 text-right text-emerald-700">− {formatMoney(discountApplied)}</td>
-                        <td className="py-2 px-3 text-right text-emerald-700">− {formatMoney(discountApplied * periods)}</td>
-                      </tr>
-                    )}
                     <tr className="tabular-nums">
                       <td className="py-3 px-3 font-bold text-brand-navy uppercase text-xs tracking-wider">Total Recurring</td>
                       <td className="py-3 px-3 text-right font-bold text-brand-navy">{formatMoney(finalPP)}</td>
@@ -1943,6 +1943,9 @@ export default function PayrollQuoteCalculator() {
               </div>
               <p className="text-[10px] text-slate-400 italic mt-2 ml-4">
                 Annual estimate = per-payroll × {periods} pay periods per year (frequency: {FREQUENCIES[frequency].label}). Excludes year-end fees and one-time setup.
+                {anyDiscounted && (
+                  <> Rows marked with <span className="text-emerald-600 font-bold">★</span> include the {discountPercent}% recurring discount; rows without have been opted out.</>
+                )}
               </p>
             </div>
 
@@ -1959,54 +1962,58 @@ export default function PayrollQuoteCalculator() {
                 </div>
               </div>
 
-              <div className="ml-4 grid md:grid-cols-2 gap-x-8 gap-y-5">
-                {/* Left column: Compliance (with Digital Labor Poster merged in) + Payments */}
-                <div className="space-y-5">
+              <div className="ml-4 grid md:grid-cols-2 gap-x-6 gap-y-4">
+                {/* Left column: Compliance (with Digital Labor Poster) + Payments as cards */}
+                <div className="space-y-4">
                   {['Compliance', 'Payments & Levies'].map(cat => {
                     const items = USAGE_RATE_SHEET.filter(it => it.category === cat);
                     if (items.length === 0 && cat !== 'Compliance') return null;
                     return (
                       <div key={cat}>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="w-1 h-3.5 bg-brand-gold rounded-sm"></div>
-                          <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.12em]">{cat}</h4>
+                        {/* Bold section header with gold accent bar */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-1 h-4 bg-brand-gold rounded-sm"></div>
+                          <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">{cat}</h4>
                         </div>
-                        <table className="w-full text-xs tabular-nums">
-                          <tbody className="divide-y divide-stone-100">
-                            {items.map(item => (
-                              <tr key={item.id}>
-                                <td className="py-1 pr-2 text-slate-700 font-medium">
-                                  {item.name}
-                                  {item.note && <span className="text-[10px] text-slate-400 italic block leading-tight">{item.note}</span>}
-                                </td>
-                                <td className="py-1 text-right whitespace-nowrap">
-                                  <span className="font-semibold text-brand-navy">{item.rate}</span>
-                                  <span className="text-[9px] text-slate-400 ml-1">{item.unit}</span>
-                                </td>
-                              </tr>
-                            ))}
-                            {/* Digital Labor Poster merged into Compliance */}
-                            {cat === 'Compliance' && (
-                              <tr className={digitalPosterEnabled ? 'bg-brand-gold/10' : ''}>
-                                <td className="py-1 pr-2 text-slate-700 font-medium">
-                                  <span className="inline-flex items-center gap-1.5 flex-wrap">
-                                    Digital Labor Law Poster
-                                    {digitalPosterEnabled && (
-                                      <span className="text-[8px] font-bold uppercase tracking-widest bg-brand-gold text-white px-1.5 py-0.5 rounded">Enabled</span>
-                                    )}
-                                  </span>
-                                  {digitalPosterEnabled
-                                    ? <span className="text-[10px] text-slate-400 italic block leading-tight">Included in recurring billing (see page 1).</span>
-                                    : <span className="text-[10px] text-slate-400 italic block leading-tight">Opt-in — sales rep can enable.</span>}
-                                </td>
-                                <td className="py-1 text-right whitespace-nowrap">
-                                  <span className="font-semibold text-brand-navy">$10.00</span>
-                                  <span className="text-[9px] text-slate-400 ml-1">/month · flat</span>
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
+
+                        <div className="space-y-1.5">
+                          {items.map(item => (
+                            <div key={item.id} className="flex items-start justify-between gap-3 bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold text-slate-800 leading-tight">{item.name}</div>
+                                {item.note && <div className="text-[9px] text-slate-400 italic mt-0.5 leading-tight">{item.note}</div>}
+                              </div>
+                              <div className="text-right whitespace-nowrap flex-shrink-0 tabular-nums">
+                                <div className="text-xs font-bold text-brand-navy">{item.rate}</div>
+                                <div className="text-[9px] text-slate-400">{item.unit}</div>
+                              </div>
+                            </div>
+                          ))}
+                          {/* Digital Labor Poster merged into Compliance */}
+                          {cat === 'Compliance' && (
+                            <div className={`flex items-start justify-between gap-3 rounded-lg px-3 py-1.5 border ${
+                              digitalPosterEnabled
+                                ? 'bg-brand-gold/10 border-brand-gold/40'
+                                : 'bg-stone-50 border-stone-200'
+                            }`}>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold text-slate-800 leading-tight flex items-center gap-1.5 flex-wrap">
+                                  Digital Labor Law Poster
+                                  {digitalPosterEnabled && (
+                                    <span className="text-[8px] font-bold uppercase tracking-widest bg-brand-gold text-white px-1.5 py-0.5 rounded">Enabled</span>
+                                  )}
+                                </div>
+                                <div className="text-[9px] text-slate-400 italic mt-0.5 leading-tight">
+                                  {digitalPosterEnabled ? 'Included in recurring billing (page 1).' : 'Opt-in — sales rep can enable.'}
+                                </div>
+                              </div>
+                              <div className="text-right whitespace-nowrap flex-shrink-0 tabular-nums">
+                                <div className="text-xs font-bold text-brand-navy">$10.00</div>
+                                <div className="text-[9px] text-slate-400">/month · flat</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -2014,30 +2021,32 @@ export default function PayrollQuoteCalculator() {
 
                 {/* Right column: shipping mini-table */}
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-1 h-3.5 bg-brand-gold rounded-sm"></div>
-                    <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.12em]">Shipping · Per Package</h4>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-4 bg-brand-gold rounded-sm"></div>
+                    <h4 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em]">Shipping · Per Package</h4>
                   </div>
-                  <table className="w-full text-xs tabular-nums">
-                    <thead>
-                      <tr className="text-[9px] uppercase tracking-wider text-slate-500 font-bold border-b border-stone-200">
-                        <th className="text-left py-1">Method</th>
-                        <th className="text-right py-1">Base</th>
-                        <th className="text-right py-1">Per Item</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-100">
-                      {SHIPPING_RATE_SHEET.map(s => (
-                        <tr key={s.id}>
-                          <td className="py-1 text-slate-700 font-medium">{s.method}</td>
-                          <td className="py-1 text-right text-brand-navy font-semibold">
-                            {s.base === null ? <span className="text-slate-300">—</span> : formatMoney(s.base)}
-                          </td>
-                          <td className="py-1 text-right text-brand-navy font-semibold">{formatMoney(s.perItem)}</td>
+                  <div className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
+                    <table className="w-full text-xs tabular-nums">
+                      <thead>
+                        <tr className="text-[9px] uppercase tracking-wider text-slate-500 font-bold border-b border-stone-200">
+                          <th className="text-left py-1">Method</th>
+                          <th className="text-right py-1">Base</th>
+                          <th className="text-right py-1">Per Item</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100">
+                        {SHIPPING_RATE_SHEET.map(s => (
+                          <tr key={s.id}>
+                            <td className="py-1 text-slate-700 font-medium">{s.method}</td>
+                            <td className="py-1 text-right text-brand-navy font-semibold">
+                              {s.base === null ? <span className="text-slate-300">—</span> : formatMoney(s.base)}
+                            </td>
+                            <td className="py-1 text-right text-brand-navy font-semibold">{formatMoney(s.perItem)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                   <p className="text-[9px] text-slate-400 italic mt-1 leading-tight">
                     Choose one method per shipment. Base fee applies once per package plus item fee.
                   </p>
