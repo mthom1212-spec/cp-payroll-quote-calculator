@@ -288,53 +288,47 @@ export const ANCILLARY_PRICING = {
 // Ancillary rate sheet — services that may be incurred as-used for any payroll
 // client. Shown on the "Additional Services & Rates" page for transparency;
 // not selected by reps. Purely informational rates.
-// Add more items here to extend the rate sheet.
+// Grouped by category for readability. Add more items here to extend.
 export const USAGE_RATE_SHEET = [
+  // ---- Compliance ----
   {
     id: 'laborLawPoster',
+    category: 'Compliance',
     name: 'Labor Law Poster Replacement',
     rate: '$10.00',
     unit: 'per additional location',
     note: 'First location included in payroll billing.',
   },
+  // ---- Payments & Levies ----
   {
     id: 'mnLevy',
-    name: 'Minnesota Levy Payments',
+    category: 'Payments & Levies',
+    name: 'Minnesota Levy Payment',
     rate: '$15.00',
     unit: 'per payment',
   },
   {
     id: 'vendorCheck',
-    name: 'Vendor Check Payments',
+    category: 'Payments & Levies',
+    name: 'Vendor Check Payment',
     rate: '$5.95',
     unit: 'per check',
   },
   {
     id: 'vendorAch',
-    name: 'Vendor ACH Payments',
+    category: 'Payments & Levies',
+    name: 'Vendor ACH Payment',
     rate: '$1.00',
     unit: 'per payment',
   },
-  {
-    id: 'shippingFedexTwoDay',
-    name: 'Two-Day Shipping (FedEx)',
-    rate: '$20.00',
-    unit: '+ $1.00 per item',
-    note: 'Per package. Base fee applies once per package plus item fee.',
-  },
-  {
-    id: 'shippingFedexNextDay',
-    name: 'Next-Day Shipping (FedEx)',
-    rate: '$30.00',
-    unit: '+ $1.00 per item',
-    note: 'Per package. Base fee applies once per package plus item fee.',
-  },
-  {
-    id: 'shippingUsps',
-    name: 'USPS Mail',
-    rate: '$1.75',
-    unit: 'per item mailed',
-  },
+];
+
+// Shipping is presented as its own compact table since the options are
+// either/or (client picks a method). Base fee applies once per package.
+export const SHIPPING_RATE_SHEET = [
+  { id: 'shippingFedexTwoDay',  method: 'FedEx · Two-Day',  base: 20.00, perItem: 1.00 },
+  { id: 'shippingFedexNextDay', method: 'FedEx · Next-Day', base: 30.00, perItem: 1.00 },
+  { id: 'shippingUsps',         method: 'USPS Mail',        base: null,  perItem: 1.75, note: 'No base fee — per item only.' },
 ];
 
 // Ancillary services — usage-based (informational only, not in totals)

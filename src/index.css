@@ -81,6 +81,17 @@ body {
   }
 }
 
+/* Additional Services & Rates page — keep it tight in print */
+@media print {
+  .rate-sheet .grid { gap: 0.5rem 1rem !important; }
+  .rate-sheet table th,
+  .rate-sheet table td {
+    padding-top: 0.15rem !important;
+    padding-bottom: 0.15rem !important;
+  }
+  .rate-sheet { break-inside: avoid; page-break-inside: avoid; }
+}
+
 /* Sales Summary print styles */
 @media print {
   .sales-summary {
