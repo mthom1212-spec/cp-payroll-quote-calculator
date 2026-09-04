@@ -2059,17 +2059,12 @@ export default function PayrollQuoteCalculator() {
                   </tbody>
                 </table>
                 <p className="text-[10px] text-slate-400 italic mt-2 leading-tight">
-                  These rates apply as services are used. Base shipping fees apply once per package, plus the item fee per item. Rates subject to change with 30 days' written notice.
+                  These rates apply as services are used and are billed on the payroll invoice for the corresponding period. Base shipping fees apply once per package, plus the item fee per item. Rates subject to change.
                 </p>
               </div>
             </div>
 
-            {/* Footer note */}
-            <div className="pt-4 border-t border-stone-100 text-[10px] text-slate-400 italic">
-              <p>Ancillary rates apply as services are used and are billed on the payroll invoice for the corresponding period. Rates subject to change with 30 days' written notice.</p>
-            </div>
-
-            <div className="flex justify-between items-center text-[10px] text-slate-300 mt-3">
+            <div className="flex justify-between items-center text-[10px] text-slate-300 mt-6 pt-3 border-t border-stone-100">
               <span>Creative Planning Payroll · Confidential</span>
               <span>Generated {formatDate(quoteDate)}</span>
             </div>
