@@ -133,10 +133,18 @@ describe('calculateModuleCost - payroll', () => {
     near(c.perPayroll, 88.50 + 30);
   });
 
-  it('scales rates by frequency multiplier (monthly = ×26/12)', () => {
-    const c = calculateModuleCost('payroll', PRICING_CONFIG, baseState({ frequency: 'monthly' }));
-    const m = 26 / 12;
-    near(c.perPayroll, (48 * m) + (2.70 * m * 15));
+  it('rates are FLAT across frequencies (monthly per-payroll matches bi-weekly)', () => {
+    const bi = calculateModuleCost('payroll', PRICING_CONFIG, baseState({ frequency: 'biweekly' }));
+    const mo = calculateModuleCost('payroll', PRICING_CONFIG, baseState({ frequency: 'monthly' }));
+    // Same per-payroll: $48 base + $2.70 × 15 employees = $88.50
+    near(bi.perPayroll, 48 + 2.70 * 15);
+    near(mo.perPayroll, 48 + 2.70 * 15);
+    expect(bi.perPayroll).toBe(mo.perPayroll);
+  });
+
+  it('rates flat: weekly per-payroll = bi-weekly per-payroll', () => {
+    const wk = calculateModuleCost('payroll', PRICING_CONFIG, baseState({ frequency: 'weekly' }));
+    near(wk.perPayroll, 48 + 2.70 * 15); // Same $88.50/payroll — 52 charges/yr
   });
 
   it('computes year-end: $150 base + $6.95 × 15 W-2s = $254.25', () => {
@@ -788,15 +796,14 @@ describe('end-to-end mid-size company scenario', () => {
 
     const t = calculateTotals(state);
     // Payroll headcount = 40 + 8 = 48 (1099s included)
-    // Monthly multiplier = 26/12 ≈ 2.1667
-    const m = 26 / 12;
-    const payrollPP = 48 * m + 2.70 * m * 48;          // $48 base + $2.70/emp × 48
-    const tlmPP = Math.max(2.70 * m * 48, 50 * m);     // above min
-    const hcmPP = Math.max(2.70 * m * 48, 60 * m);     // above min
-    const acaPP = 0.60 * m * 40;                        // ACA excludes 1099s
-    const fullSvcPP = Math.max(4.50 * m * 48, 50 * m); // above min
-    const retirementPP = Math.max(0.75 * m * 40, 40 * m); // 401k min $40 kicks in at monthly
-    const cobraPP = Math.max(0.50 * m * 48, 40 * m);   // COBRA min $40 also applies
+    // Rates are FLAT — frequency doesn't scale them.
+    const payrollPP = 48 + 2.70 * 48;                 // $48 base + $2.70/emp × 48
+    const tlmPP = Math.max(2.70 * 48, 50);            // above $50 min
+    const hcmPP = Math.max(2.70 * 48, 60);            // above $60 min
+    const acaPP = 0.60 * 40;                          // ACA excludes 1099s, no min
+    const fullSvcPP = Math.max(4.50 * 48, 50);        // above min
+    const retirementPP = Math.max(0.75 * 40, 40);     // 401k billed on W-2 head only
+    const cobraPP = Math.max(0.50 * 48, 40);          // COBRA min $40
 
     // Discountable = everything except retirement
     const discountable = payrollPP + tlmPP + hcmPP + acaPP + fullSvcPP + cobraPP;
