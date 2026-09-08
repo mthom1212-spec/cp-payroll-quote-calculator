@@ -94,10 +94,12 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   } = state;
 
   const config = configSource[moduleKey];
-  const multiplier = getMultiplier(frequency);
   const empCount = customEmpCount !== null ? customEmpCount : employeeCount;
 
   // --- Base fee (payroll can be overridden; monthly-flat services carry it here) ---
+  // Rates are FLAT per pay period — no frequency multiplier is applied.
+  // Exceptions: monthly-billed services (Expense Tracking / Digital Labor Poster)
+  //             still convert their monthly rate to per-payroll based on frequency.
   let adjBase;
   if (moduleKey === 'payroll' && payrollBaseOverride !== null && payrollBaseOverride !== undefined) {
     adjBase = payrollBaseOverride;
@@ -105,7 +107,7 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
     // Flat monthly fee (e.g., Digital Labor Law Poster): convert to per-payroll base.
     adjBase = (config.monthlyFlat * 12) / FREQUENCIES[frequency].periods;
   } else {
-    adjBase = config.baseFee * multiplier;
+    adjBase = config.baseFee;
   }
 
   // --- Per-employee rate (monthly billing / overrides / default) ---
@@ -117,13 +119,13 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   } else if (config.monthlyBilling) {
     adjPepm = (config.monthlyPerUser * 12) / FREQUENCIES[frequency].periods;
   } else if (overrides?.pepm !== null && overrides?.pepm !== undefined) {
-    adjPepm = overrides.pepm * multiplier;
+    adjPepm = overrides.pepm;
   } else {
-    adjPepm = config.pepm * multiplier;
+    adjPepm = config.pepm;
   }
   const adjMin = (overrides?.minimum !== null && overrides?.minimum !== undefined)
-    ? overrides.minimum * multiplier
-    : config.minimum * multiplier;
+    ? overrides.minimum
+    : config.minimum;
 
   // --- Headcount routing ---
   const w2Head = getW2Headcount({ w2Count: state.w2Count, employeeCount: empCount });
@@ -219,7 +221,8 @@ export const calculateSCorpCost = (state) => {
     periodsPerYear = 4;
     periodLabel = 'quarter';
   } else {
-    perPeriod = SCORP_BIWEEKLY_BASE * getMultiplier(frequency);
+    // Weekly / bi-weekly / semi-monthly: flat per-payroll rate — no multiplier.
+    perPeriod = SCORP_BIWEEKLY_BASE;
     periodsPerYear = FREQUENCIES[frequency].periods;
     periodLabel = 'payroll';
   }
@@ -260,10 +263,11 @@ export const calculateBenefitEdiRecurring = ({ benefitEdi, employeeCount, freque
   const empty = { perPayroll: 0, annual: 0, rate: 0, min: 0, isMinApplied: false, baseRate: 0 };
   if (!benefitEdi?.enabled) return empty;
   const periods = FREQUENCIES[frequency].periods;
-  const multiplier = 26 / periods;
+  // Flat rates — no frequency multiplier. Same $/emp per payroll regardless
+  // of pay frequency; same $40 minimum per payroll.
   const baseRate = benefitEdi.cobraBundle ? BENEFIT_EDI_RATE_BUNDLE : BENEFIT_EDI_RATE_STD;
-  const rate = baseRate * multiplier;
-  const min = BENEFIT_EDI_MIN * multiplier;
+  const rate = baseRate;
+  const min = BENEFIT_EDI_MIN;
   const rawCost = rate * employeeCount;
   const perPayroll = Math.max(rawCost, min);
   const isMinApplied = rawCost < min;
@@ -411,7 +415,7 @@ export const totalPerPayrollAt = (empCount, state) => {
     let perPeriod;
     if (frequency === 'annual') perPeriod = SCORP_ANNUAL_FLAT;
     else if (isQuarterlyBilling) perPeriod = SCORP_QUARTERLY_FLAT;
-    else perPeriod = SCORP_BIWEEKLY_BASE * (26 / FREQUENCIES[frequency].periods);
+    else perPeriod = SCORP_BIWEEKLY_BASE;
     nonDiscountable +=
       perPeriod +
       (additionalJurisdictions > 0 ? additionalJurisdictions * JURISDICTION_FEE_PER_LOCATION : 0);

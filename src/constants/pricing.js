@@ -1,5 +1,13 @@
-// All baseline pricing is for Bi-Weekly (26 periods).
-// Rates are adjusted mathematically for other frequencies.
+// Rates are FLAT per pay period regardless of frequency — the numbers
+// below apply the same whether the client runs payroll weekly, bi-weekly,
+// semi-monthly, or monthly.
+//
+// Exceptions (services that intentionally bill differently):
+//   - Digital Labor Law Poster + Expense Tracking: `monthlyBilling` items
+//     convert their monthly rate to per-payroll based on frequency.
+//   - S-Corp Owner-Only mode: flat $250/quarter (monthly or quarterly),
+//     $1,000/year (annual), $48/payroll (bi-weekly / weekly / semi-monthly).
+//   - Year-end forms: $6.95/form once per year, no frequency effect.
 
 // ---- Constants for one-time / specialty fees ---------------------
 // Single source of truth. Import these anywhere pricing text is displayed.
