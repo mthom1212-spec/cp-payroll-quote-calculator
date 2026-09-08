@@ -30,7 +30,7 @@ function Setup({ serviceId, state, change }) {
   </div>;
 }
 
-function ServiceCard({ service, source, state, change }) {
+export function ServiceCard({ service, source, state, change }) {
   const isCore = source === PRICING_CONFIG;
   const key = isCore ? 'selectedModules' : 'selectedAncillary';
   const selected = state.sCorpMode && service.id === 'payroll' || state[key][service.id];
@@ -94,11 +94,11 @@ function ServiceCard({ service, source, state, change }) {
             <Check label="Override payroll base rate" checked={state.payrollBaseOverride !== null}
               onChange={() => change('payrollBaseOverride', state.payrollBaseOverride === null ? costs.rates.base : null)} />
             {state.payrollBaseOverride !== null && <Field label="Base rate per payroll ($)" value={state.payrollBaseOverride} step={0.01}
-              hint="This amount stays fixed when pay frequency changes. Turn the override off to restore frequency-based pricing."
+              hint="This amount stays fixed when pay frequency changes. Turn the override off to restore the standard base rate."
               onChange={value => change('payrollBaseOverride', value)} />}
           </>}
           {['retirement', 'onboarding'].includes(service.id) && <>
-            <p className="qw-muted">These are biweekly baseline rates. Other pay frequencies scale automatically.</p>
+            <p className="qw-muted">These rates and minimums apply per payroll, regardless of pay frequency.</p>
             <div className="qw-fields">
               <Field label="Rate per employee ($)" value={overrides.pepm ?? service.pepm} step={0.01}
                 onChange={pepm => override({ pepm })} />

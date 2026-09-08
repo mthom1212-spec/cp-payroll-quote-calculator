@@ -1,5 +1,7 @@
 # Codex Quote Builder preview
 
+> Archived notes for the first preview. For the current redesign, setup and validation, see [STUDIO_PREVIEW.md](STUDIO_PREVIEW.md).
+
 This branch is a separate interface experiment based on production commit `6badd15`.
 Production and the GitHub Pages deployment workflow have not been changed.
 

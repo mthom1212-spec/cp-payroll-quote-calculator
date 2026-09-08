@@ -25,3 +25,4 @@ dist-ssr
 
 # Local preview QA output (screenshots and sample quotes)
 tmp/codex-qa/
+tmp/studio-qa/

@@ -10,7 +10,7 @@ import * as pricingCalc from '../lib/pricing-calc';
 import { Icon, ModuleIcon } from './Icons';
 import Toggle from './Toggle';
 import Toast from './Toast';
-import QuoteWorkspace from './workspace/QuoteWorkspace';
+import QuoteStudio from './studio/QuoteStudio';
 import QuoteDocuments from './QuoteDocuments';
 import Tooltip from './Tooltip';
 
@@ -20,7 +20,7 @@ import Tooltip from './Tooltip';
 const REP_GUIDE_URL = `${import.meta.env.BASE_URL}guide.html`;
 
 export default function PayrollQuoteCalculator({ preview = false }) {
-  const storageKey = preview ? 'cpp-quote-builder:codex-preview:quotes:v1' : 'cpp-quote-builder:quotes';
+  const storageKey = preview ? 'cpp-quote-builder:studio:quotes:v2' : 'cpp-quote-builder:quotes';
   // --- State ---
   const [clientName, setClientName] = useState('');
   const [quoteDate, setQuoteDate] = useState(() => {
@@ -369,7 +369,7 @@ export default function PayrollQuoteCalculator({ preview = false }) {
 
   if (preview) {
     const setters = { clientName: setClientName, quoteDate: setQuoteDate, employeeCount: setEmployeeCount, w2Count: setW2Count, count1099: setCount1099, payrollYearEndRateOverride: setPayrollYearEndRateOverride, annualFormsOverride: setAnnualFormsOverride, expenseUserCount: setExpenseUserCount, frequency: setFrequency, discountPercent: setDiscountPercent, discountOptOut: setDiscountOptOut, clientFacing: setClientFacing, showRepInfo: setShowRepInfo, repName: setRepName, repPhone: setRepPhone, repEmail: setRepEmail, selectedModules: setSelectedModules, payrollBaseOverride: setPayrollBaseOverride, additionalJurisdictions: setAdditionalJurisdictions, ancillaryRateOverrides: setAncillaryRateOverrides, selectedAncillary: setSelectedAncillary, sCorpMode: setSCorpMode, sCorpSetup: setSCorpSetup, stateTaxId: setStateTaxId, pytd: setPytd, benefitEdi: setBenefitEdi, setupFees: setSetupFees };
-    return <QuoteWorkspace
+    return <QuoteStudio
       state={{ clientName, quoteDate, employeeCount, w2Count, count1099, payrollYearEndRateOverride, annualFormsOverride, expenseUserCount, frequency, discountPercent, discountOptOut, clientFacing, showRepInfo, repName, repPhone, repEmail, selectedModules, payrollBaseOverride, additionalJurisdictions, ancillaryRateOverrides, selectedAncillary, sCorpMode, sCorpSetup, stateTaxId, pytd, benefitEdi, setupFees }}
       change={(key, value) => setters[key](value)}
       totals={totals} documents={quoteDocuments} savedQuotes={savedQuotes}

@@ -8,6 +8,7 @@ function DiscountMarker({ moduleKey, discountPercent, discountOptOut }) {
 
 // One document renderer shared by the original UI and the Codex workspace.
 export default function QuoteDocuments({ clientName, quoteDate, employeeCount, frequency, sCorpMode, totals, clientFacing, activeModuleCount, benefitEdi, stateTaxId, pytd, selectedAncillary, calculateSCorpCost, selectedModules, calculateModuleCost, formatHeadcount, additionalJurisdictions, activeAncillaryPricingCount, stateTaxIdTotal, pytdTotal, benefitEdiRecurring, benefitEdiTotal, discountPercent, perEmployeeDelta, modulesAtMinimum, annualFees, showRepInfo, repName, repPhone, repEmail, activeAncillaryUsageCount, discountOptOut }) {
+  const mixedBilling = sCorpMode && benefitEdi.enabled && totals.sCorpPeriodLabel !== 'payroll';
   return (
         <>
         {/* Quote Preview / Print Sheet */}
@@ -59,7 +60,7 @@ export default function QuoteDocuments({ clientName, quoteDate, employeeCount, f
               <thead>
                 <tr className="border-b-2 border-brand-navy text-left text-[10px] font-bold text-brand-navy uppercase tracking-widest">
                   <th className="pb-3 pl-2">Service Module</th>
-                  <th className="pb-3 text-right">{sCorpMode ? (totals.sCorpPeriodLabel === 'quarter' ? 'Per Quarter' : totals.sCorpPeriodLabel === 'year' ? 'Annual' : 'Per Payroll') : 'Per Payroll'}</th>
+                  <th className="pb-3 text-right">{mixedBilling ? 'Recurring rate' : sCorpMode ? (totals.sCorpPeriodLabel === 'quarter' ? 'Per Quarter' : totals.sCorpPeriodLabel === 'year' ? 'Annual' : 'Per Payroll') : 'Per Payroll'}</th>
                   {!clientFacing &&<th className="pb-3 text-right">Annual Est.</th>}
                   <th className="pb-3 text-right pr-2">Setup Fee</th>
                 </tr>
@@ -93,7 +94,7 @@ export default function QuoteDocuments({ clientName, quoteDate, employeeCount, f
                         </div>
                       </td>
                       <td className="py-4 text-right font-semibold text-slate-700">
-                        {formatMoney(sc.perPeriod)}
+                        {formatMoney(sc.perPeriod)}{mixedBilling && <span className="text-[10px] font-normal"> /{sc.periodLabel}</span>}
                       </td>
                       {!clientFacing && (
                         <td className="py-4 text-right text-slate-600">
@@ -258,7 +259,7 @@ export default function QuoteDocuments({ clientName, quoteDate, employeeCount, f
                       )}
                     </td>
                     <td className="py-3 text-right font-semibold text-slate-700">
-                      {formatMoney(benefitEdiRecurring.perPayroll)}<DiscountMarker discountPercent={discountPercent} discountOptOut={discountOptOut} moduleKey="benefitEdi" />
+                      {formatMoney(benefitEdiRecurring.perPayroll)}{mixedBilling && <span className="text-[10px] font-normal"> /payroll</span>}<DiscountMarker discountPercent={discountPercent} discountOptOut={discountOptOut} moduleKey="benefitEdi" />
                     </td>
                     {!clientFacing && (
                       <td className="py-3 text-right text-slate-600">
@@ -306,10 +307,10 @@ export default function QuoteDocuments({ clientName, quoteDate, employeeCount, f
                 )}
 
                 {/* Total row */}
-                <tr>
+                <tr className="quote-total-row">
                   <td className="pt-4 pb-4 pl-2 font-bold text-brand-navy">TOTAL ESTIMATE</td>
                   <td className="pt-4 pb-4 text-right font-bold text-brand-navy text-lg">
-                    {formatMoney(totals.finalPerPayroll)}
+                    {mixedBilling ? <span className="text-[10px] font-normal">Separate billing schedules<br />See rates above</span> : formatMoney(totals.finalPerPayroll)}
                   </td>
                   {!clientFacing &&(
                     <td className="pt-4 pb-4 text-right font-bold text-brand-navy">
