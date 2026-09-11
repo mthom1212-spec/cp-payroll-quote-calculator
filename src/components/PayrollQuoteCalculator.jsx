@@ -409,7 +409,7 @@ export default function PayrollQuoteCalculator() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             {/* Creative Planning brand mark */}
-            <BrandMark className="w-9 h-9 rounded-lg shadow-sm" />
+            <BrandMark className="w-9 h-9" />
             <div>
               <h1 className="text-lg font-bold tracking-tight font-display leading-tight">Creative Planning Payroll</h1>
               <p className="text-white/60 text-[10px] tracking-[0.16em] uppercase font-semibold mt-0.5">

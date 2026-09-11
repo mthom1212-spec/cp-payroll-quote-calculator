@@ -218,7 +218,7 @@ export default function RateSheet({ onPrint }) {
           <div className="flex justify-between items-start gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
-                <BrandMark className="w-10 h-10 rounded-lg shadow-sm" />
+                <BrandMark className="w-10 h-10" />
                 <div>
                   <h1 className="text-2xl font-bold font-display tracking-tight leading-tight">Creative Planning Payroll</h1>
                   <p className="text-white/60 text-[10px] tracking-[0.18em] uppercase font-semibold">Rate Sheet</p>

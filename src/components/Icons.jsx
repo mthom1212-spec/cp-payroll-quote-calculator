@@ -114,34 +114,31 @@ export const ModuleIcon = ({ moduleId, className }) => {
   return map[moduleId] || null;
 };
 
-// --- Creative Planning brand mark ---
-// Navy tile, white geometric "C" with flat-cut ends, gold diamond in the
-// opening. Vector recreation of the CP logo mark so it stays crisp at any
-// size on screen and in print. Swap the paths for the official asset if one
-// becomes available.
-export const BrandMark = ({ className = 'w-9 h-9', title = 'Creative Planning' }) => (
+// --- Creative Planning brand mark (official) ---
+// Exact vector paths pulled from creativeplanning.com's logo SVG: a circular
+// "C" with a diamond-shaped notch on the right and a gold diamond nested in
+// it. Transparent background, like the real asset.
+//   variant="light" (default) → cream C, for use on navy / dark backgrounds
+//   variant="dark"            → navy C, for light backgrounds and the favicon
+export const CP_GOLD = '#CCA15E';
+export const CP_CREAM = '#F8F1E6';
+export const CP_NAVY = '#1B4460';
+
+export const BrandMark = ({ className = 'w-9 h-9', title = 'Creative Planning', variant = 'light' }) => (
   <svg
-    viewBox="0 0 40 40"
+    viewBox="0 0 24 24"
     className={className}
     role="img"
     aria-label={title}
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="40" height="40" rx="7" fill="#0F2D4A" />
     <path
-      d="M 27.07 11.57 A 11 11 0 1 0 27.07 28.43"
-      fill="none"
-      stroke="#FFFFFF"
-      strokeWidth="6.5"
-      strokeLinecap="butt"
+      d="M16.536 7.47761L20.5019 3.51492C18.3285 1.34328 15.326 0 12.0099 0C5.37755 0 0 5.37313 0 12C0 18.6269 5.37755 24 12.0099 24C15.326 24 18.3285 22.6567 20.5019 20.4851L16.536 16.5224L12.0099 21.0448L2.95766 12L12.0099 2.95522L16.536 7.47761Z"
+      fill={variant === 'dark' ? CP_NAVY : CP_CREAM}
     />
-    <rect
-      x="17.5"
-      y="16"
-      width="8"
-      height="8"
-      transform="rotate(45 21.5 20)"
-      fill="#C49A6C"
+    <path
+      d="M12.0066 5.96301L5.96216 12.0024L12.0066 18.0419L18.051 12.0024L12.0066 5.96301Z"
+      fill={CP_GOLD}
     />
   </svg>
 );
