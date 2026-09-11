@@ -260,10 +260,18 @@ export default function PayrollQuoteCalculator() {
 
   const totalPerPayrollAt = (empCount) => pricingCalc.totalPerPayrollAt(empCount, calcState());
 
-  const perEmployeeDelta = {
-    up: totalPerPayrollAt(employeeCount + 1) - totals.finalPerPayroll,
-    down: employeeCount > 0 ? totals.finalPerPayroll - totalPerPayrollAt(employeeCount - 1) : 0,
-  };
+  // ±1 employee delta — only true per-employee per-payroll rates. Flat monthly
+  // fees and tiered-by-headcount fees (e.g. isolved Virtual Clock) are excluded
+  // so a tier jump doesn't masquerade as a per-employee cost.
+  const perEmployeeDelta = (() => {
+    const s = calcState();
+    const at = (n) => pricingCalc.totalPerPayrollAt(n, s, { perEmployeeOnly: true });
+    const base = at(employeeCount);
+    return {
+      up: at(employeeCount + 1) - base,
+      down: employeeCount > 0 ? base - at(employeeCount - 1) : 0,
+    };
+  })();
 
   // Identify selected modules currently sitting at their minimum floor.
   // For each, compute the employee-count threshold where they'd unlock:
@@ -1952,29 +1960,25 @@ export default function PayrollQuoteCalculator() {
                 {/* Per-employee delta caption + minimum explanation */}
                 {(perEmployeeDelta.up > 0 || perEmployeeDelta.down > 0 || modulesAtMinimum.length > 0) && (
                   <tr>
-                    <td colSpan={clientFacing ? 3 : 4} className="pb-3 pl-2 text-[10px] text-slate-500 italic leading-snug">
+                    <td colSpan={clientFacing ? 3 : 4} className="pb-2 pl-2 text-[9px] text-slate-400 italic leading-snug">
                       <div>
-                        <span className="font-semibold text-slate-600 not-italic">Per-employee adjustment (approx.):</span>{' '}
-                        +{formatMoney(perEmployeeDelta.up)} per added employee
-                        {' / '}&minus;{formatMoney(perEmployeeDelta.down)} per terminated employee
-                        <span className="text-slate-400"> · per payroll</span>
+                        <span className="text-slate-500 not-italic">Per-employee adj.</span>{' '}
+                        +{formatMoney(perEmployeeDelta.up)} added
+                        {' / '}&minus;{formatMoney(perEmployeeDelta.down)} terminated
+                        <span className="text-slate-300"> · per payroll · per-employee rates only</span>
                       </div>
                       {modulesAtMinimum.length > 0 && (
-                        <div className="mt-1 text-slate-500">
-                          <span className="text-brand-gold font-bold">★</span>{' '}
-                          {modulesAtMinimum.map(m => m.name).join(' and ')}{' '}
-                          {modulesAtMinimum.length === 1 ? 'is' : 'are'} currently at
-                          {modulesAtMinimum.length === 1 ? ' its minimum' : ' their minimums'}
-                          {' — adding employees won’t increase '}
-                          {modulesAtMinimum.length === 1 ? 'this fee' : 'those fees'}
-                          {' until '}
+                        <div className="mt-0.5 text-slate-400">
+                          <span className="text-brand-gold">★</span>{' '}
+                          {modulesAtMinimum.map(m => m.name.replace(/\s*\(.*\)/, '')).join(' & ')}{' '}
+                          at minimum until{' '}
                           {modulesAtMinimum.map((m, i) => (
                             <span key={i}>
-                              {i > 0 && (i === modulesAtMinimum.length - 1 ? ' and ' : ', ')}
-                              <span className="font-semibold text-slate-600 not-italic">~{m.unlockAt}</span> ({m.name.replace(/\s*\(.*\)/, '')})
+                              {i > 0 && (i === modulesAtMinimum.length - 1 ? ' & ' : ', ')}
+                              ~{m.unlockAt} ({m.name.replace(/\s*\(.*\)/, '')})
                             </span>
                           ))}
-                          {' employees.'}
+                          {' emp.'}
                         </div>
                       )}
                     </td>

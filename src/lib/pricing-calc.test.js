@@ -1024,3 +1024,42 @@ describe('calculateIsolvedAddon', () => {
     near(t.finalPerPayroll, (payroll + tlm) * 0.9 + sched);
   });
 });
+
+// =============================================================
+// ±1 employee delta must ignore flat / tiered / monthly items
+// =============================================================
+describe('totalPerPayrollAt perEmployeeOnly', () => {
+  const state = baseState({
+    employeeCount: 15,
+    selectedModules: { payroll: true, tlm: true },
+    selectedIsolved: { virtualClock: true, scheduling: true, geofencing: true },
+    selectedAncillary: { digitalLaborPoster: true, expense: true },
+  });
+
+  it('default mode includes Virtual Clock tier jump at 15→16', () => {
+    const a = totalPerPayrollAt(15, state);
+    const b = totalPerPayrollAt(16, state);
+    // Tier jump: $75/mo → $150/mo = +$34.62/payroll on top of per-emp rates
+    expect(b - a).toBeGreaterThan(30);
+  });
+
+  it('perEmployeeOnly excludes Virtual Clock, Digital Poster, Expense', () => {
+    const a = totalPerPayrollAt(15, state, { perEmployeeOnly: true });
+    const b = totalPerPayrollAt(16, state, { perEmployeeOnly: true });
+    // Payroll $2.70 + TLM (15→16 stays under $50 min → $0) + Scheduling $1.00 = $3.70
+    near(b - a, 2.70 + 0 + 1.00);
+  });
+
+  it('perEmployeeOnly delta is symmetric when no tier boundaries are crossed', () => {
+    const s = baseState({
+      employeeCount: 40,
+      selectedModules: { payroll: true, tlm: true },
+      selectedIsolved: { virtualClock: true, scheduling: true },
+    });
+    const at = (n) => totalPerPayrollAt(n, s, { perEmployeeOnly: true });
+    const up = at(41) - at(40);
+    const down = at(40) - at(39);
+    near(up, down);
+    near(up, 2.70 + 2.70 + 1.00); // payroll + tlm (above min) + scheduling
+  });
+});

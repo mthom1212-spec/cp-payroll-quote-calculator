@@ -473,8 +473,17 @@ export const calculateTotals = (state) => {
 /**
  * The per-payroll total at an arbitrary employee count. Used to compute the
  * "±1 employee" delta shown on the quote.
+ *
+ * @param {object} [opts]
+ * @param {boolean} [opts.perEmployeeOnly=false]
+ *   When true, skips items whose cost is NOT a true per-employee per-payroll
+ *   rate — flat monthly fees (Digital Labor Poster), monthly per-user billing
+ *   (Expense Tracking), and tiered-by-headcount fees (isolved Virtual Clock).
+ *   Use this for the "± per employee" delta so a tier jump or a flat fee
+ *   doesn't distort the number the rep quotes the client.
  */
-export const totalPerPayrollAt = (empCount, state) => {
+export const totalPerPayrollAt = (empCount, state, opts = {}) => {
+  const { perEmployeeOnly = false } = opts;
   const {
     sCorpMode,
     frequency,
@@ -508,19 +517,21 @@ export const totalPerPayrollAt = (empCount, state) => {
       }
     });
     Object.keys(ANCILLARY_PRICING).forEach(key => {
-      if (selectedAncillary[key]) {
-        const pp = calculateModuleCost(key, ANCILLARY_PRICING, { ...state, customEmpCount: empCount }).perPayroll;
-        if (discountOptOut[key]) nonDiscountable += pp;
-        else discountable += pp;
-      }
+      if (!selectedAncillary[key]) return;
+      // Monthly-billed items (flat or per-user) aren't per-payroll-per-employee rates.
+      if (perEmployeeOnly && ANCILLARY_PRICING[key].monthlyBilling) return;
+      const pp = calculateModuleCost(key, ANCILLARY_PRICING, { ...state, customEmpCount: empCount }).perPayroll;
+      if (discountOptOut[key]) nonDiscountable += pp;
+      else discountable += pp;
     });
     const selectedIsolved = state.selectedIsolved || {};
     Object.keys(ISOLVED_ADDONS).forEach(key => {
-      if (selectedIsolved[key]) {
-        const pp = calculateIsolvedAddon(key, { ...state, customEmpCount: empCount }).perPayroll;
-        if (discountOptOut[key]) nonDiscountable += pp;
-        else discountable += pp;
-      }
+      if (!selectedIsolved[key]) return;
+      // Only 'pepm' isolved items scale per employee; tiered/included don't.
+      if (perEmployeeOnly && ISOLVED_ADDONS[key].pricingType !== 'pepm') return;
+      const pp = calculateIsolvedAddon(key, { ...state, customEmpCount: empCount }).perPayroll;
+      if (discountOptOut[key]) nonDiscountable += pp;
+      else discountable += pp;
     });
   }
 
