@@ -293,6 +293,57 @@ export const ANCILLARY_PRICING = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// isolved platform add-ons. All require the TLM (Timekeeping) module to be
+// selected. Rendered as their own section under the Add-ons & Extras tab.
+// Add more isolved services here as they come online.
+//
+// Pricing patterns:
+//   - tieredMonthly: flat monthly fee determined by the employee-count tier
+//     (converted to per-payroll based on frequency, like monthlyFlat)
+//   - pepm: standard per-employee per-payroll rate
+//   - included: no charge, just an opt-in flag (shows as "Included")
+// ---------------------------------------------------------------------------
+export const ISOLVED_ADDONS = {
+  virtualClock: {
+    id: 'virtualClock',
+    name: 'Virtual Clock',
+    description: 'Web / mobile time clock for employees',
+    requires: 'tlm',
+    pricingType: 'tieredMonthly',
+    tiers: [
+      { upTo: 15,       monthly: 75.00  },   // 1–15 employees
+      { upTo: 75,       monthly: 150.00 },   // 16–75 employees
+      { upTo: Infinity, monthly: 250.00 },   // 76+ employees
+    ],
+    defaultSetup: 250.00,
+  },
+  geofencing: {
+    id: 'geofencing',
+    name: 'Geofencing',
+    description: 'Location-based clock-in restrictions',
+    requires: 'tlm',
+    pricingType: 'included',
+    defaultSetup: 0.00,
+  },
+  scheduling: {
+    id: 'scheduling',
+    name: 'Scheduling',
+    description: 'Employee shift scheduling',
+    requires: 'tlm',
+    pricingType: 'pepm',
+    pepm: 1.00,
+    minimum: 0.00,
+    defaultSetup: 0.00,
+  },
+};
+
+// Helper: find the Virtual Clock monthly tier for a given employee count.
+export const getTieredMonthlyRate = (tiers, employeeCount) => {
+  const tier = tiers.find(t => employeeCount <= t.upTo) || tiers[tiers.length - 1];
+  return tier.monthly;
+};
+
 // Ancillary rate sheet — services that may be incurred as-used for any payroll
 // client. Shown on the "Additional Services & Rates" page for transparency;
 // not selected by reps. Purely informational rates.

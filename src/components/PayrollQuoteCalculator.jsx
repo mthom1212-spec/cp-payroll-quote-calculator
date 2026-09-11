@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES,
-  MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE,
+  MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, ISOLVED_ADDONS,
   USAGE_RATE_SHEET, SHIPPING_RATE_SHEET,
   BENEFIT_EDI_MIN, JURISDICTION_FEE_PER_LOCATION,
   formatMoney, formatDate,
@@ -12,6 +12,7 @@ import Toggle from './Toggle';
 import Toast from './Toast';
 import SalesSummary from './SalesSummary';
 import Tooltip from './Tooltip';
+import RateSheet from './RateSheet';
 
 const STORAGE_KEY = 'cpp-quote-builder:quotes';
 // Rep guide is a static HTML file in /public served alongside the app.
@@ -68,6 +69,23 @@ export default function PayrollQuoteCalculator() {
     Object.keys(ANCILLARY_USAGE).forEach(key => { initial[key] = false; });
     return initial;
   });
+
+  // isolved platform add-ons (all require TLM)
+  const [selectedIsolved, setSelectedIsolved] = useState(() => {
+    const initial = {};
+    Object.keys(ISOLVED_ADDONS).forEach(key => { initial[key] = false; });
+    return initial;
+  });
+  const [isolvedSetupFees, setIsolvedSetupFees] = useState(() => {
+    const initial = {};
+    Object.entries(ISOLVED_ADDONS).forEach(([key, cfg]) => {
+      initial[key] = { included: cfg.defaultSetup > 0, amount: cfg.defaultSetup };
+    });
+    return initial;
+  });
+
+  // Top-level view: 'builder' (default quote workflow) | 'ratesheet' (reference-only rate card)
+  const [appView, setAppView] = useState('builder');
 
   const [sCorpMode, setSCorpMode] = useState(false);
   const [sCorpSetup, setSCorpSetup] = useState({ included: true, amount: 750 });
@@ -126,6 +144,7 @@ export default function PayrollQuoteCalculator() {
       selectedModules, payrollBaseOverride, additionalJurisdictions,
       showAncillary, selectedAncillary, sCorpMode, sCorpSetup,
       stateTaxId, pytd, benefitEdi, ancillaryRateOverrides, setupFees,
+      selectedIsolved, isolvedSetupFees,
       savedAt: new Date().toISOString(),
     };
     const isUpdate = !!savedQuotes[trimmed];
@@ -166,6 +185,8 @@ export default function PayrollQuoteCalculator() {
     if (s.benefitEdi) setBenefitEdi(s.benefitEdi);
     if (s.ancillaryRateOverrides) setAncillaryRateOverrides(s.ancillaryRateOverrides);
     if (s.setupFees) setSetupFees(s.setupFees);
+    if (s.selectedIsolved) setSelectedIsolved(prev => ({ ...prev, ...s.selectedIsolved }));
+    if (s.isolvedSetupFees) setIsolvedSetupFees(prev => ({ ...prev, ...s.isolvedSetupFees }));
     showToast(`Loaded "${name}"`, 'info');
   };
 
@@ -204,6 +225,7 @@ export default function PayrollQuoteCalculator() {
     additionalJurisdictions, expenseUserCount,
     ancillaryRateOverrides, setupFees,
     selectedModules, selectedAncillary,
+    selectedIsolved, isolvedSetupFees,
     discountPercent, discountOptOut,
     benefitEdi, stateTaxId, pytd,
     sCorpMode, sCorpSetup,
@@ -213,6 +235,7 @@ export default function PayrollQuoteCalculator() {
   const calculateSCorpCost = () => pricingCalc.calculateSCorpCost(calcState());
   const calculateModuleCost = (moduleKey, configSource = PRICING_CONFIG, customEmpCount = null) =>
     pricingCalc.calculateModuleCost(moduleKey, configSource, { ...calcState(), customEmpCount });
+  const calculateIsolvedAddon = (key) => pricingCalc.calculateIsolvedAddon(key, calcState());
 
   const totals = useMemo(
     () => pricingCalc.calculateTotals(calcState()),
@@ -223,8 +246,17 @@ export default function PayrollQuoteCalculator() {
       frequency, discountPercent, discountOptOut, setupFees, payrollBaseOverride,
       sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions,
       ancillaryRateOverrides, pytd, benefitEdi,
+      selectedIsolved, isolvedSetupFees,
     ],
   );
+
+  const toggleIsolved = (key) =>
+    setSelectedIsolved(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleIsolvedSetup = (key) =>
+    setIsolvedSetupFees(prev => ({ ...prev, [key]: { ...prev[key], included: !prev[key].included } }));
+  const updateIsolvedSetupAmount = (key, val) =>
+    setIsolvedSetupFees(prev => ({ ...prev, [key]: { ...prev[key], amount: val } }));
+  const activeIsolvedCount = Object.keys(ISOLVED_ADDONS).filter(k => selectedIsolved[k]).length;
 
   const totalPerPayrollAt = (empCount) => pricingCalc.totalPerPayrollAt(empCount, calcState());
 
@@ -377,11 +409,37 @@ export default function PayrollQuoteCalculator() {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight font-display leading-tight">Creative Planning Payroll</h1>
-              <p className="text-white/60 text-[10px] tracking-[0.16em] uppercase font-semibold mt-0.5">Quote Builder</p>
+              <p className="text-white/60 text-[10px] tracking-[0.16em] uppercase font-semibold mt-0.5">
+                {appView === 'ratesheet' ? 'Rate Sheet' : 'Quote Builder'}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* View switch: Quote Builder / Rate Sheet */}
+            <div className="inline-flex bg-black/20 rounded-lg p-0.5 mr-1">
+              <button
+                type="button"
+                onClick={() => setAppView('builder')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all relative ${
+                  appView === 'builder' ? 'bg-white text-brand-navy shadow-sm' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Quote Builder
+                {appView === 'builder' && <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAppView('ratesheet')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-all relative ${
+                  appView === 'ratesheet' ? 'bg-white text-brand-navy shadow-sm' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Rate Sheet
+                {appView === 'ratesheet' && <span aria-hidden="true" className="absolute left-1/4 right-1/4 -bottom-0.5 h-[2px] bg-brand-gold rounded"></span>}
+              </button>
+            </div>
+
             <a
               href={REP_GUIDE_URL}
               target="_blank"
@@ -398,12 +456,21 @@ export default function PayrollQuoteCalculator() {
               className="flex items-center gap-2 bg-brand-gold hover:bg-brand-goldDark text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors shadow-sm"
             >
               <Icon.Printer />
-              Print Quote
+              {appView === 'ratesheet' ? 'Print Rate Sheet' : 'Print Quote'}
             </button>
           </div>
         </div>
       </header>
 
+      {/* ===== Rate Sheet view — reference-only, no selections needed ===== */}
+      {appView === 'ratesheet' && (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <RateSheet onPrint={() => window.print()} />
+        </main>
+      )}
+
+      {/* ===== Quote Builder view ===== */}
+      {appView === 'builder' && (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Configuration Panel */}
@@ -703,7 +770,7 @@ export default function PayrollQuoteCalculator() {
                   <div className="flex items-end gap-1 border-b border-stone-200" role="tablist" aria-label="Quote configuration tabs">
                     {[
                       { id: 'modules', label: 'Service Modules', count: activeModuleCount, total: Object.keys(PRICING_CONFIG).length },
-                      { id: 'addons', label: 'Add-ons & Extras', count: activeAncillaryCount + (stateTaxId.enabled ? 1 : 0) + (pytd.enabled ? 1 : 0) + (benefitEdi.enabled ? 1 : 0) },
+                      { id: 'addons', label: 'Add-ons & Extras', count: activeAncillaryCount + activeIsolvedCount + (stateTaxId.enabled ? 1 : 0) + (pytd.enabled ? 1 : 0) + (benefitEdi.enabled ? 1 : 0) },
                       { id: 'overrides', label: 'Overrides', count: (w2Count !== '' ? 1 : 0) + (count1099 !== '' ? 1 : 0) + (payrollYearEndRateOverride !== null ? 1 : 0) + (annualFormsOverride !== '' ? 1 : 0) },
                     ].map(tab => {
                       const isActive = activeTab === tab.id;
@@ -1299,6 +1366,108 @@ export default function PayrollQuoteCalculator() {
                     </div>
                   )}
                 </div>
+
+                {/* isolved platform add-ons — all require TLM */}
+                <div className="pt-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-[11px] font-bold text-brand-navy uppercase tracking-[0.14em] flex items-center gap-2">
+                      isolved Add-ons
+                      <span className="text-[9px] font-semibold normal-case tracking-normal bg-brand-navy/10 text-brand-navy px-1.5 py-0.5 rounded">isolved platform</span>
+                    </h3>
+                    <span className="text-[10px] text-slate-400">
+                      {selectedModules.tlm ? 'Requires TLM (selected ✓)' : 'Requires TLM — select it under Service Modules'}
+                    </span>
+                  </div>
+                  <div className="gold-hairline"></div>
+
+                  <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                    {Object.values(ISOLVED_ADDONS).map((cfg) => {
+                      const tlmOk = !!selectedModules[cfg.requires];
+                      const on = !!selectedIsolved[cfg.id];
+                      const calc = on ? calculateIsolvedAddon(cfg.id) : null;
+                      return (
+                        <div
+                          key={cfg.id}
+                          className={`rounded-xl border transition-all p-3 ${
+                            on
+                              ? 'border-brand-navy/40 bg-white ring-2 ring-brand-navy/10 shadow-warm-sm'
+                              : 'border-stone-200 bg-white hover:border-stone-300'
+                          } ${!tlmOk ? 'opacity-60' : ''}`}
+                        >
+                          <label className={`flex items-start gap-2 group ${tlmOk ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              disabled={!tlmOk}
+                              onChange={() => toggleIsolved(cfg.id)}
+                              className="w-4 h-4 rounded mt-0.5 cursor-pointer flex-shrink-0 disabled:cursor-not-allowed"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-semibold text-slate-800 group-hover:text-brand-navy transition-colors">{cfg.name}</span>
+                              <span className="block text-[11px] text-slate-500 mt-0.5">{cfg.description}</span>
+                              <span className="block text-[11px] text-slate-500 mt-0.5">
+                                {cfg.pricingType === 'tieredMonthly' && (
+                                  <>
+                                    {cfg.tiers.map((t, i) => {
+                                      const lower = i === 0 ? 1 : cfg.tiers[i - 1].upTo + 1;
+                                      const label = t.upTo === Infinity ? `${lower}+` : `${lower}–${t.upTo}`;
+                                      return (
+                                        <span key={i}>
+                                          {i > 0 && ' · '}
+                                          {formatMoney(t.monthly)}/mo <span className="text-slate-400">({label} emp)</span>
+                                        </span>
+                                      );
+                                    })}
+                                  </>
+                                )}
+                                {cfg.pricingType === 'pepm' && `${formatMoney(cfg.pepm)}/emp per payroll`}
+                                {cfg.pricingType === 'included' && <span className="text-emerald-600 font-semibold">Included — no charge</span>}
+                              </span>
+                            </div>
+                          </label>
+
+                          {on && tlmOk && (
+                            <div className="mt-3 pt-2.5 border-t border-dashed border-stone-200 space-y-2 text-[11px]">
+                              {calc && !calc.isIncluded && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-500">
+                                    {cfg.pricingType === 'tieredMonthly' ? `Tier: ${calc.tierLabel} · ${formatMoney(calc.monthly)}/mo` : 'Per payroll'}
+                                  </span>
+                                  <span className="font-semibold text-brand-navy tabular-nums">
+                                    {formatMoney(calc.perPayroll)}<span className="text-slate-400 font-normal ml-1">/ payroll</span>
+                                  </span>
+                                </div>
+                              )}
+                              {cfg.defaultSetup > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Setup</label>
+                                  <Toggle
+                                    checked={isolvedSetupFees[cfg.id]?.included || false}
+                                    onChange={() => toggleIsolvedSetup(cfg.id)}
+                                    label={`Toggle setup fee for ${cfg.name}`}
+                                  />
+                                  {isolvedSetupFees[cfg.id]?.included ? (
+                                    <div className="flex items-center gap-0.5">
+                                      <span className="text-slate-400">$</span>
+                                      <input
+                                        type="number"
+                                        value={isolvedSetupFees[cfg.id]?.amount || 0}
+                                        onChange={(e) => updateIsolvedSetupAmount(cfg.id, e.target.value)}
+                                        className="w-16 text-right text-xs border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 italic">Waived</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               )}
 
@@ -1689,6 +1858,46 @@ export default function PayrollQuoteCalculator() {
                     </td>
                   </tr>
                 )}
+
+                {/* isolved add-ons (only when TLM is selected) */}
+                {!sCorpMode && selectedModules.tlm && activeIsolvedCount > 0 && (
+                  <tr>
+                    <td colSpan={clientFacing ? 3 : 4} className="pt-4 pb-1 pl-2">
+                      <span className="text-[9px] font-bold text-brand-navy/60 uppercase tracking-widest">isolved Add-ons</span>
+                    </td>
+                  </tr>
+                )}
+                {!sCorpMode && selectedModules.tlm && Object.values(ISOLVED_ADDONS).map((cfg) => {
+                  if (!selectedIsolved[cfg.id]) return null;
+                  const c = calculateIsolvedAddon(cfg.id);
+                  return (
+                    <tr key={cfg.id} className="text-sm">
+                      <td className="py-3 pl-2">
+                        <div className="font-bold text-slate-800">{cfg.name}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {c.isIncluded
+                            ? 'Included with TLM — no additional charge'
+                            : cfg.pricingType === 'tieredMonthly'
+                              ? `Rate: ${formatMoney(c.monthly)}/month (${c.tierLabel}) · Billed monthly`
+                              : `Rate: ${formatMoney(cfg.pepm)}/emp × ${employeeCount} employees`}
+                        </div>
+                      </td>
+                      <td className="py-3 text-right font-semibold text-slate-700">
+                        {c.isIncluded
+                          ? <span className="text-emerald-600 text-xs font-bold uppercase tracking-wider">Included</span>
+                          : <>{formatMoney(c.perPayroll)}<DiscountMarker moduleKey={cfg.id} /></>}
+                      </td>
+                      {!clientFacing && (
+                        <td className="py-3 text-right text-slate-600">
+                          {c.isIncluded ? '—' : formatMoney(c.annual)}
+                        </td>
+                      )}
+                      <td className="py-3 text-right text-slate-600 pr-2">
+                        {c.setup > 0 ? formatMoney(c.setup) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot className="border-t-2 border-brand-navy">
                 {/* Discount rows (not in S-Corp mode) */}
@@ -1911,6 +2120,16 @@ export default function PayrollQuoteCalculator() {
             const f = factorFor('benefitEdi');
             const pp = benefitEdiRecurring.perPayroll * f;
             recap.push({ id: 'benefitEdi', name: `Benefit Integration (EDI)${benefitEdi.cobraBundle ? ' + COBRA' : ''}`, perPayroll: pp, annual: pp * periods, discounted: f < 1 });
+          }
+          if (selectedModules.tlm) {
+            Object.values(ISOLVED_ADDONS).forEach(cfg => {
+              if (!selectedIsolved[cfg.id]) return;
+              const c = calculateIsolvedAddon(cfg.id);
+              if (c.isIncluded) return; // $0 — nothing to recap
+              const f = factorFor(cfg.id);
+              const pp = c.perPayroll * f;
+              recap.push({ id: cfg.id, name: `${cfg.name} (isolved)`, perPayroll: pp, annual: pp * periods, monthly: cfg.pricingType === 'tieredMonthly', discounted: f < 1 });
+            });
           }
           const finalPP = recap.reduce((s, r) => s + r.perPayroll, 0);
           const finalAnnual = recap.reduce((s, r) => s + r.annual, 0);
@@ -2209,6 +2428,7 @@ export default function PayrollQuoteCalculator() {
         )}
         </>
       </main>
+      )}
 
       {/* Toast notifications */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />

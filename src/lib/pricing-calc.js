@@ -10,6 +10,8 @@ import {
   PRICING_CONFIG,
   FREQUENCIES,
   ANCILLARY_PRICING,
+  ISOLVED_ADDONS,
+  getTieredMonthlyRate,
   STATE_TAX_ID_PER_ID,
   PYTD_HOURLY,
   PYTD_PER_STATEMENT,
@@ -275,6 +277,68 @@ export const calculateBenefitEdiRecurring = ({ benefitEdi, employeeCount, freque
   return { perPayroll, annual, rate, min, isMinApplied, baseRate };
 };
 
+// ---------- isolved add-ons ----------
+
+/**
+ * Compute the per-payroll / annual / setup cost for one isolved add-on.
+ * All isolved add-ons require TLM; the caller is responsible for gating on
+ * that, but we return zeros defensively when `requires` isn't satisfied.
+ */
+export const calculateIsolvedAddon = (key, state) => {
+  const empty = { perPayroll: 0, annual: 0, setup: 0, monthly: 0, tierLabel: null, isIncluded: false, rateLabel: '' };
+  const cfg = ISOLVED_ADDONS[key];
+  if (!cfg) return empty;
+  const {
+    frequency,
+    employeeCount,
+    selectedModules = {},
+    isolvedSetupFees = {},
+    customEmpCount = null,
+  } = state;
+  if (cfg.requires && !selectedModules[cfg.requires]) return empty;
+
+  const empCount = customEmpCount !== null ? customEmpCount : employeeCount;
+  const periods = FREQUENCIES[frequency].periods;
+  const setup = isolvedSetupFees[key]?.included
+    ? parseFloat(isolvedSetupFees[key].amount || 0)
+    : 0;
+
+  if (cfg.pricingType === 'tieredMonthly') {
+    const monthly = getTieredMonthlyRate(cfg.tiers, empCount);
+    const perPayroll = (monthly * 12) / periods;
+    const annual = monthly * 12;
+    const tier = cfg.tiers.find(t => empCount <= t.upTo) || cfg.tiers[cfg.tiers.length - 1];
+    const tierIdx = cfg.tiers.indexOf(tier);
+    const lower = tierIdx === 0 ? 1 : cfg.tiers[tierIdx - 1].upTo + 1;
+    const tierLabel = tier.upTo === Infinity ? `${lower}+ employees` : `${lower}–${tier.upTo} employees`;
+    return {
+      perPayroll, annual, setup, monthly, tierLabel,
+      isIncluded: false,
+      rateLabel: `${monthly.toFixed(2)}/month · ${tierLabel}`,
+    };
+  }
+
+  if (cfg.pricingType === 'pepm') {
+    const rawCost = cfg.pepm * empCount;
+    const perPayroll = Math.max(rawCost, cfg.minimum || 0);
+    return {
+      perPayroll, annual: perPayroll * periods, setup, monthly: 0, tierLabel: null,
+      isIncluded: false,
+      rateLabel: `$${cfg.pepm.toFixed(2)}/emp per payroll`,
+    };
+  }
+
+  if (cfg.pricingType === 'included') {
+    return {
+      ...empty, setup,
+      isIncluded: true,
+      rateLabel: 'Included — no additional charge',
+    };
+  }
+
+  return empty;
+};
+
 // ---------- One-time fee helpers ----------
 
 export const calculateStateTaxIdTotal = (stateTaxId) =>
@@ -374,6 +438,22 @@ export const calculateTotals = (state) => {
     discountableAn += benefitEdiRec.annual;
   }
 
+  // isolved add-ons (each requires TLM; calc returns zeros if not met)
+  const selectedIsolved = state.selectedIsolved || {};
+  Object.keys(ISOLVED_ADDONS).forEach(key => {
+    if (selectedIsolved[key]) {
+      const c = calculateIsolvedAddon(key, state);
+      if (discountOptOut[key]) {
+        nonDiscountablePP += c.perPayroll;
+        nonDiscountableAn += c.annual;
+      } else {
+        discountablePP += c.perPayroll;
+        discountableAn += c.annual;
+      }
+      totalSetup += c.setup;
+    }
+  });
+
   const subtotalPerPayroll = discountablePP + nonDiscountablePP;
   const subtotalAnnual = discountableAn + nonDiscountableAn;
   const discountPerPayroll = discountablePP * (discountPercent / 100);
@@ -430,6 +510,14 @@ export const totalPerPayrollAt = (empCount, state) => {
     Object.keys(ANCILLARY_PRICING).forEach(key => {
       if (selectedAncillary[key]) {
         const pp = calculateModuleCost(key, ANCILLARY_PRICING, { ...state, customEmpCount: empCount }).perPayroll;
+        if (discountOptOut[key]) nonDiscountable += pp;
+        else discountable += pp;
+      }
+    });
+    const selectedIsolved = state.selectedIsolved || {};
+    Object.keys(ISOLVED_ADDONS).forEach(key => {
+      if (selectedIsolved[key]) {
+        const pp = calculateIsolvedAddon(key, { ...state, customEmpCount: empCount }).perPayroll;
         if (discountOptOut[key]) nonDiscountable += pp;
         else discountable += pp;
       }

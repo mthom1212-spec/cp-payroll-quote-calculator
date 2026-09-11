@@ -13,6 +13,7 @@ import {
   calculatePytdTotal,
   calculateTotals,
   totalPerPayrollAt,
+  calculateIsolvedAddon,
   STATE_TAX_ID_PER_ID,
   BENEFIT_EDI_FIRST_FEED,
   BENEFIT_EDI_ADDL_FEED,
@@ -911,5 +912,115 @@ describe('Digital Labor Law Poster (monthlyFlat)', () => {
     // Annual = payroll annual + $120 flat
     const payrollAnnual = (48 + 2.70 * 15) * 26 + (150 + 6.95 * 15);
     near(t.finalAnnual, payrollAnnual + 120);
+  });
+});
+
+// =============================================================
+// isolved add-ons (all require TLM)
+// =============================================================
+describe('calculateIsolvedAddon', () => {
+  const withTlm = (o = {}) => baseState({
+    selectedModules: { payroll: true, tlm: true },
+    selectedIsolved: { virtualClock: true, geofencing: true, scheduling: true },
+    isolvedSetupFees: { virtualClock: { included: true, amount: 250 } },
+    ...o,
+  });
+
+  it('returns zeros when TLM is not selected (gating)', () => {
+    const c = calculateIsolvedAddon('virtualClock', baseState({
+      selectedModules: { payroll: true },
+      selectedIsolved: { virtualClock: true },
+    }));
+    expect(c.perPayroll).toBe(0);
+    expect(c.annual).toBe(0);
+  });
+
+  it('Virtual Clock tier 1 (1-15 emp): $75/mo → bi-weekly $34.62/payroll, $900/yr', () => {
+    const c = calculateIsolvedAddon('virtualClock', withTlm({ employeeCount: 15 }));
+    near(c.monthly, 75);
+    near(c.perPayroll, (75 * 12) / 26);
+    near(c.annual, 900);
+    expect(c.tierLabel).toBe('1–15 employees');
+  });
+
+  it('Virtual Clock tier 2 (16-75 emp): $150/mo', () => {
+    const c16 = calculateIsolvedAddon('virtualClock', withTlm({ employeeCount: 16 }));
+    const c75 = calculateIsolvedAddon('virtualClock', withTlm({ employeeCount: 75 }));
+    near(c16.monthly, 150);
+    near(c75.monthly, 150);
+    expect(c16.tierLabel).toBe('16–75 employees');
+  });
+
+  it('Virtual Clock tier 3 (76+ emp): $250/mo', () => {
+    const c = calculateIsolvedAddon('virtualClock', withTlm({ employeeCount: 76 }));
+    near(c.monthly, 250);
+    near(c.annual, 3000);
+    expect(c.tierLabel).toBe('76+ employees');
+  });
+
+  it('Virtual Clock monthly-to-per-payroll conversion respects frequency', () => {
+    const bi = calculateIsolvedAddon('virtualClock', withTlm({ employeeCount: 15, frequency: 'biweekly' }));
+    const mo = calculateIsolvedAddon('virtualClock', withTlm({ employeeCount: 15, frequency: 'monthly' }));
+    near(bi.perPayroll, 75 * 12 / 26);
+    near(mo.perPayroll, 75); // 12 charges/yr = $75 each
+    near(bi.annual, mo.annual); // same $900/yr either way
+  });
+
+  it('Virtual Clock includes its $250 setup when enabled', () => {
+    const c = calculateIsolvedAddon('virtualClock', withTlm());
+    near(c.setup, 250);
+  });
+
+  it('Geofencing is included — $0 recurring, flagged isIncluded', () => {
+    const c = calculateIsolvedAddon('geofencing', withTlm());
+    expect(c.perPayroll).toBe(0);
+    expect(c.isIncluded).toBe(true);
+  });
+
+  it('Scheduling: $1/emp per payroll, no minimum', () => {
+    const c = calculateIsolvedAddon('scheduling', withTlm({ employeeCount: 40 }));
+    near(c.perPayroll, 40);
+    near(c.annual, 40 * 26);
+  });
+
+  it('Scheduling is flat across frequencies', () => {
+    const bi = calculateIsolvedAddon('scheduling', withTlm({ employeeCount: 40, frequency: 'biweekly' }));
+    const wk = calculateIsolvedAddon('scheduling', withTlm({ employeeCount: 40, frequency: 'weekly' }));
+    near(bi.perPayroll, wk.perPayroll);
+  });
+
+  it('flows into calculateTotals (per-payroll + setup)', () => {
+    const state = withTlm({ employeeCount: 15 });
+    const t = calculateTotals(state);
+    const payroll = 48 + 2.70 * 15;         // 88.50
+    const tlm = Math.max(2.70 * 15, 50);    // 50 (min)
+    const vc = 75 * 12 / 26;                // 34.62
+    const sched = 1.00 * 15;                // 15
+    near(t.finalPerPayroll, payroll + tlm + vc + sched);
+    near(t.totalSetup, 250);                // virtual clock setup only (no core setups in baseState)
+  });
+
+  it('is excluded from totals when TLM deselected even if flags are on', () => {
+    const state = baseState({
+      selectedModules: { payroll: true },
+      selectedIsolved: { virtualClock: true, scheduling: true },
+    });
+    const t = calculateTotals(state);
+    near(t.finalPerPayroll, 48 + 2.70 * 15); // payroll only
+  });
+
+  it('respects discount opt-out per isolved item', () => {
+    const state = withTlm({
+      employeeCount: 40,
+      selectedIsolved: { scheduling: true },
+      discountPercent: 10,
+      discountOptOut: { scheduling: true },
+    });
+    const t = calculateTotals(state);
+    const payroll = 48 + 2.70 * 40;
+    const tlm = 2.70 * 40;
+    const sched = 40;
+    // discount hits payroll + tlm; scheduling stays full
+    near(t.finalPerPayroll, (payroll + tlm) * 0.9 + sched);
   });
 });

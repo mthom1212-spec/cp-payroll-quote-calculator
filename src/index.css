@@ -81,6 +81,24 @@ body {
   }
 }
 
+/* Rate Sheet (reference-only rate card) — print styles */
+@media print {
+  .rate-sheet-page { max-width: none !important; }
+  .rate-sheet-header { padding: 0.9rem 1.4rem !important; }
+  .rate-sheet-header h1 { font-size: 1.15rem !important; }
+  .rate-sheet-header p { font-size: 0.65rem !important; }
+  .rate-sheet-body { padding: 0.9rem 1.4rem !important; }
+  .rate-sheet-body .space-y-8 > * + * { margin-top: 0.85rem !important; }
+  .rate-section { break-inside: avoid; page-break-inside: avoid; }
+  .rate-section h2 { font-size: 0.9rem !important; }
+  .rate-section table { font-size: 0.62rem !important; }
+  .rate-section table th,
+  .rate-section table td {
+    padding-top: 0.2rem !important;
+    padding-bottom: 0.2rem !important;
+  }
+}
+
 /* Additional Services & Rates page — keep it tight in print */
 @media print {
   .rate-sheet table th,
