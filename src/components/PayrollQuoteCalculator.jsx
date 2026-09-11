@@ -7,7 +7,7 @@ import {
   formatMoney, formatDate,
 } from '../constants/pricing';
 import * as pricingCalc from '../lib/pricing-calc';
-import { Icon, ModuleIcon } from './Icons';
+import { Icon, ModuleIcon, BrandMark } from './Icons';
 import Toggle from './Toggle';
 import Toast from './Toast';
 import SalesSummary from './SalesSummary';
@@ -408,13 +408,8 @@ export default function PayrollQuoteCalculator() {
       <header className="header-gradient text-white no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            {/* Crest ornament — small serif "C" mark */}
-            <div
-              aria-hidden="true"
-              className="w-9 h-9 rounded-lg grid place-items-center bg-white/10 border border-white/15 font-display font-bold text-brand-gold text-lg"
-            >
-              C
-            </div>
+            {/* Creative Planning brand mark */}
+            <BrandMark className="w-9 h-9 rounded-lg shadow-sm" />
             <div>
               <h1 className="text-lg font-bold tracking-tight font-display leading-tight">Creative Planning Payroll</h1>
               <p className="text-white/60 text-[10px] tracking-[0.16em] uppercase font-semibold mt-0.5">

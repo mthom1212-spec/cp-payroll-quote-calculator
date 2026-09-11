@@ -113,3 +113,35 @@ export const ModuleIcon = ({ moduleId, className }) => {
   };
   return map[moduleId] || null;
 };
+
+// --- Creative Planning brand mark ---
+// Navy tile, white geometric "C" with flat-cut ends, gold diamond in the
+// opening. Vector recreation of the CP logo mark so it stays crisp at any
+// size on screen and in print. Swap the paths for the official asset if one
+// becomes available.
+export const BrandMark = ({ className = 'w-9 h-9', title = 'Creative Planning' }) => (
+  <svg
+    viewBox="0 0 40 40"
+    className={className}
+    role="img"
+    aria-label={title}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect width="40" height="40" rx="7" fill="#0F2D4A" />
+    <path
+      d="M 27.07 11.57 A 11 11 0 1 0 27.07 28.43"
+      fill="none"
+      stroke="#FFFFFF"
+      strokeWidth="6.5"
+      strokeLinecap="butt"
+    />
+    <rect
+      x="17.5"
+      y="16"
+      width="8"
+      height="8"
+      transform="rotate(45 21.5 20)"
+      fill="#C49A6C"
+    />
+  </svg>
+);

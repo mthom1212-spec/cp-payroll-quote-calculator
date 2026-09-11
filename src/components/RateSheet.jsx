@@ -9,6 +9,7 @@ import {
   SCORP_ANNUAL_FLAT, SCORP_QUARTERLY_FLAT, SCORP_BIWEEKLY_BASE,
   formatMoney, formatDate,
 } from '../constants/pricing';
+import { BrandMark } from './Icons';
 
 // ------------------------------------------------------------------
 // Rate Sheet — a reference-only rate card showing all current pricing
@@ -217,7 +218,7 @@ export default function RateSheet({ onPrint }) {
           <div className="flex justify-between items-start gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
-                <div aria-hidden="true" className="w-10 h-10 rounded-lg grid place-items-center bg-white/10 border border-white/15 font-display font-bold text-brand-gold text-xl">C</div>
+                <BrandMark className="w-10 h-10 rounded-lg shadow-sm" />
                 <div>
                   <h1 className="text-2xl font-bold font-display tracking-tight leading-tight">Creative Planning Payroll</h1>
                   <p className="text-white/60 text-[10px] tracking-[0.18em] uppercase font-semibold">Rate Sheet</p>
