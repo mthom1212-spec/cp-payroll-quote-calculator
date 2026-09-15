@@ -35,10 +35,10 @@ export default function PayrollQuoteCalculator() {
   const [frequency, setFrequency] = useState('biweekly');
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountOptOut, setDiscountOptOut] = useState({});
-  // The single output-mode switch:
-  //   clientFacing = true  → client-friendly pricing quote
-  //   clientFacing = false → internal Sales Summary (revenue breakdown + CSV)
-  const [clientFacing, setClientFacing] = useState(true);
+  // Show Annual Totals — off by default so the client quote stays per-payroll.
+  // When on, adds the Annual Est. column to the pricing table, the annual
+  // figure to the hero stats, and the Estimated Annual Recap on page 2.
+  const [showAnnual, setShowAnnual] = useState(false);
 
   // Right-column tab: 'modules' | 'addons' | 'overrides'
   const [activeTab, setActiveTab] = useState('modules');
@@ -140,7 +140,7 @@ export default function PayrollQuoteCalculator() {
       clientName, quoteDate, employeeCount, w2Count, count1099,
       payrollYearEndRateOverride, annualFormsOverride,
       expenseUserCount, frequency, discountPercent, discountOptOut,
-      clientFacing, showRepInfo, repName, repPhone, repEmail,
+      showAnnual, showRepInfo, repName, repPhone, repEmail,
       selectedModules, payrollBaseOverride, additionalJurisdictions,
       showAncillary, selectedAncillary, sCorpMode, sCorpSetup,
       stateTaxId, pytd, benefitEdi, ancillaryRateOverrides, setupFees,
@@ -168,7 +168,8 @@ export default function PayrollQuoteCalculator() {
     if (s.frequency !== undefined) setFrequency(s.frequency);
     if (s.discountPercent !== undefined) setDiscountPercent(s.discountPercent);
     if (s.discountOptOut !== undefined) setDiscountOptOut(s.discountOptOut);
-    if (s.clientFacing !== undefined) setClientFacing(s.clientFacing);
+    if (s.showAnnual !== undefined) setShowAnnual(s.showAnnual);
+    else if (s.clientFacing !== undefined) setShowAnnual(!s.clientFacing); // legacy saves
     if (s.showRepInfo !== undefined) setShowRepInfo(s.showRepInfo);
     if (s.repName !== undefined) setRepName(s.repName);
     if (s.repPhone !== undefined) setRepPhone(s.repPhone);
@@ -271,31 +272,6 @@ export default function PayrollQuoteCalculator() {
       up: at(employeeCount + 1) - base,
       down: employeeCount > 0 ? base - at(employeeCount - 1) : 0,
     };
-  })();
-
-  // Identify selected modules currently sitting at their minimum floor.
-  // For each, compute the employee-count threshold where they'd unlock:
-  //   raw cost = base + pepm × emp = min  →  emp = ceil((min - base) / pepm)
-  const modulesAtMinimum = (() => {
-    if (sCorpMode) return [];
-    const flagged = [];
-    Object.values(PRICING_CONFIG).forEach(m => {
-      if (!selectedModules[m.id]) return;
-      const c = calculateModuleCost(m.id);
-      if (c.isMinApplied && c.rates.pepm > 0) {
-        const unlockEmp = Math.ceil((c.rates.min - c.rates.base) / c.rates.pepm);
-        flagged.push({ name: m.name, unlockAt: unlockEmp });
-      }
-    });
-    Object.values(ANCILLARY_PRICING).forEach(svc => {
-      if (!selectedAncillary[svc.id]) return;
-      const c = calculateModuleCost(svc.id, ANCILLARY_PRICING);
-      if (c.isMinApplied && c.rates.pepm > 0) {
-        const unlockEmp = Math.ceil((c.rates.min - c.rates.base) / c.rates.pepm);
-        flagged.push({ name: svc.name, unlockAt: unlockEmp });
-      }
-    });
-    return flagged;
   })();
 
   // Small green asterisk shown next to per-payroll amounts on the quote for
@@ -503,7 +479,7 @@ export default function PayrollQuoteCalculator() {
                       <div className="uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Modules</div>
                       <div className="font-semibold text-white tabular-nums text-sm mt-0.5">{activeModuleCount}</div>
                     </div>
-                    {!clientFacing ? (
+                    {showAnnual ? (
                       <div>
                         <div className="uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>Annual Est.</div>
                         <div className="font-semibold text-white tabular-nums text-sm mt-0.5">{formatMoney(totals.finalAnnual)}</div>
@@ -681,19 +657,19 @@ export default function PayrollQuoteCalculator() {
 
                   <hr className="border-stone-100" />
 
-                  {/* Client Facing toggle — controls whether Annual Est. column appears in the quote table */}
+                  {/* Show Annual Totals — adds Annual Est. column + Annual Recap page section */}
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Client Facing</label>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Show Annual Totals</label>
                     <Toggle
-                      checked={clientFacing}
-                      onChange={() => setClientFacing(prev => !prev)}
-                      label="Toggle client facing mode"
+                      checked={showAnnual}
+                      onChange={() => setShowAnnual(prev => !prev)}
+                      label="Toggle annual totals on the quote"
                     />
                   </div>
                   <p className="text-[11px] text-slate-400 -mt-2">
-                    {clientFacing
-                      ? 'On: standard client-facing quote (no annual column).'
-                      : 'Off: shows Annual Est. column inline for internal review.'}
+                    {showAnnual
+                      ? 'On: quote shows an Annual Est. column and the Estimated Annual Recap.'
+                      : 'Off: quote shows per-payroll pricing only.'}
                   </p>
 
                   <hr className="border-stone-100" />
@@ -1600,8 +1576,8 @@ export default function PayrollQuoteCalculator() {
           </div>
         </section>
 
-        {/* Client Facing toggle now controls only the Annual Est. column visibility
-            on the standard quote — no separate Sales Summary view. */}
+        {/* Show Annual Totals controls the Annual Est. column + Annual Recap;
+            the quote is otherwise always the client-facing layout. */}
         <>
         {/* Quote Preview / Print Sheet */}
         <section className="bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto print-container print-page-fill">
@@ -1653,7 +1629,7 @@ export default function PayrollQuoteCalculator() {
                 <tr className="border-b-2 border-brand-navy text-left text-[10px] font-bold text-brand-navy uppercase tracking-widest">
                   <th className="pb-3 pl-2">Service Module</th>
                   <th className="pb-3 text-right">{sCorpMode ? (totals.sCorpPeriodLabel === 'quarter' ? 'Per Quarter' : totals.sCorpPeriodLabel === 'year' ? 'Annual' : 'Per Payroll') : 'Per Payroll'}</th>
-                  {!clientFacing &&<th className="pb-3 text-right">Annual Est.</th>}
+                  {showAnnual &&<th className="pb-3 text-right">Annual Est.</th>}
                   <th className="pb-3 text-right pr-2">Setup Fee</th>
                 </tr>
               </thead>
@@ -1661,7 +1637,7 @@ export default function PayrollQuoteCalculator() {
                 {/* Empty state — no modules selected in standard mode */}
                 {!sCorpMode && activeModuleCount === 0 && !benefitEdi.enabled && !stateTaxId.enabled && !pytd.enabled && Object.values(selectedAncillary).every(v => !v) && (
                   <tr>
-                    <td colSpan={clientFacing ? 3 : 4} className="py-10 text-center">
+                    <td colSpan={showAnnual ? 4 : 3} className="py-10 text-center">
                       <div className="text-slate-400 text-sm italic">
                         No services selected yet.<br />
                         <span className="text-[11px] text-slate-300">Choose a service module on the right to start building this quote.</span>
@@ -1686,7 +1662,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-4 text-right font-semibold text-slate-700">
                         {formatMoney(sc.perPeriod)}
                       </td>
-                      {!clientFacing && (
+                      {showAnnual && (
                         <td className="py-4 text-right text-slate-600">
                           {formatMoney(sc.annual)}
                         </td>
@@ -1732,7 +1708,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-4 text-right font-semibold text-slate-700">
                         {formatMoney(costs.perPayroll)}<DiscountMarker moduleKey={module.id} />
                       </td>
-                      {!clientFacing &&(
+                      {showAnnual &&(
                         <td className="py-4 text-right text-slate-600">
                           {formatMoney(costs.annual)}
                         </td>
@@ -1747,7 +1723,7 @@ export default function PayrollQuoteCalculator() {
                 {/* Ancillary per-payroll services (included in totals, hidden in S-Corp) */}
                 {!sCorpMode && activeAncillaryPricingCount > 0 && (
                   <tr>
-                    <td colSpan={clientFacing ? 3 : 4} className="pt-4 pb-1 pl-2">
+                    <td colSpan={showAnnual ? 4 : 3} className="pt-4 pb-1 pl-2">
                       <span className="text-[9px] font-bold text-brand-navy/60 uppercase tracking-widest">Recurring Add-ons</span>
                     </td>
                   </tr>
@@ -1778,7 +1754,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-3 text-right font-semibold text-slate-700">
                         {formatMoney(costs.perPayroll)}<DiscountMarker moduleKey={svc.id} />
                       </td>
-                      {!clientFacing && (
+                      {showAnnual && (
                         <td className="py-3 text-right text-slate-600">
                           {formatMoney(costs.annual)}
                         </td>
@@ -1801,7 +1777,7 @@ export default function PayrollQuoteCalculator() {
                       </div>
                     </td>
                     <td className="py-3 text-right text-slate-300">{'\u2014'}</td>
-                    {!clientFacing && <td className="py-3 text-right text-slate-300">{'\u2014'}</td>}
+                    {showAnnual && <td className="py-3 text-right text-slate-300">{'\u2014'}</td>}
                     <td className="py-3 text-right font-semibold text-slate-700 pr-2">
                       {formatMoney(stateTaxIdTotal)}
                     </td>
@@ -1820,7 +1796,7 @@ export default function PayrollQuoteCalculator() {
                       </div>
                     </td>
                     <td className="py-3 text-right text-slate-300">{'—'}</td>
-                    {!clientFacing && <td className="py-3 text-right text-slate-300">{'—'}</td>}
+                    {showAnnual && <td className="py-3 text-right text-slate-300">{'—'}</td>}
                     <td className="py-3 text-right font-semibold text-slate-700 pr-2">
                       {formatMoney(pytdTotal)}
                     </td>
@@ -1851,7 +1827,7 @@ export default function PayrollQuoteCalculator() {
                     <td className="py-3 text-right font-semibold text-slate-700">
                       {formatMoney(benefitEdiRecurring.perPayroll)}<DiscountMarker moduleKey="benefitEdi" />
                     </td>
-                    {!clientFacing && (
+                    {showAnnual && (
                       <td className="py-3 text-right text-slate-600">
                         {formatMoney(benefitEdiRecurring.annual)}
                       </td>
@@ -1865,7 +1841,7 @@ export default function PayrollQuoteCalculator() {
                 {/* isolved add-ons (only when TLM is selected) */}
                 {!sCorpMode && selectedModules.tlm && activeIsolvedCount > 0 && (
                   <tr>
-                    <td colSpan={clientFacing ? 3 : 4} className="pt-4 pb-1 pl-2">
+                    <td colSpan={showAnnual ? 4 : 3} className="pt-4 pb-1 pl-2">
                       <span className="text-[9px] font-bold text-brand-navy/60 uppercase tracking-widest">isolved Add-ons</span>
                     </td>
                   </tr>
@@ -1890,7 +1866,7 @@ export default function PayrollQuoteCalculator() {
                           ? <span className="text-emerald-600 text-xs font-bold uppercase tracking-wider">Included</span>
                           : <>{formatMoney(c.perPayroll)}<DiscountMarker moduleKey={cfg.id} /></>}
                       </td>
-                      {!clientFacing && (
+                      {showAnnual && (
                         <td className="py-3 text-right text-slate-600">
                           {c.isIncluded ? '—' : formatMoney(c.annual)}
                         </td>
@@ -1911,7 +1887,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="pt-4 text-right font-semibold text-slate-400 text-sm">
                         {formatMoney(totals.subtotalPerPayroll)}
                       </td>
-                      {!clientFacing &&(
+                      {showAnnual &&(
                         <td className="pt-4 text-right font-semibold text-slate-400 text-sm">
                           {formatMoney(totals.subtotalAnnual)}
                         </td>
@@ -1926,7 +1902,7 @@ export default function PayrollQuoteCalculator() {
                       <td className="py-2 text-right font-semibold text-emerald-600 text-sm">
                         &minus; {formatMoney(totals.discountPerPayroll)}
                       </td>
-                      {!clientFacing &&(
+                      {showAnnual &&(
                         <td className="py-2 text-right font-semibold text-emerald-600 text-sm">
                           &minus; {formatMoney(totals.discountAnnual)}
                         </td>
@@ -1942,7 +1918,7 @@ export default function PayrollQuoteCalculator() {
                   <td className="pt-4 pb-4 text-right font-bold text-brand-navy text-lg">
                     {formatMoney(totals.finalPerPayroll)}
                   </td>
-                  {!clientFacing &&(
+                  {showAnnual &&(
                     <td className="pt-4 pb-4 text-right font-bold text-brand-navy">
                       {formatMoney(totals.finalAnnual)}
                     </td>
@@ -1952,30 +1928,16 @@ export default function PayrollQuoteCalculator() {
                   </td>
                 </tr>
 
-                {/* Per-employee delta caption + minimum explanation */}
-                {(perEmployeeDelta.up > 0 || perEmployeeDelta.down > 0 || modulesAtMinimum.length > 0) && (
+                {/* Per-employee delta caption */}
+                {(perEmployeeDelta.up > 0 || perEmployeeDelta.down > 0) && (
                   <tr>
-                    <td colSpan={clientFacing ? 3 : 4} className="pb-2 pl-2 text-[9px] text-slate-400 italic leading-snug">
+                    <td colSpan={showAnnual ? 4 : 3} className="pb-2 pl-2 text-[9px] text-slate-400 italic leading-snug">
                       <div>
                         <span className="text-slate-500 not-italic">Per-employee adj.</span>{' '}
                         +{formatMoney(perEmployeeDelta.up)} added
                         {' / '}&minus;{formatMoney(perEmployeeDelta.down)} terminated
                         <span className="text-slate-300"> · per payroll · per-employee rates only</span>
                       </div>
-                      {modulesAtMinimum.length > 0 && (
-                        <div className="mt-0.5 text-slate-400">
-                          <span className="text-brand-gold">★</span>{' '}
-                          {modulesAtMinimum.map(m => m.name.replace(/\s*\(.*\)/, '')).join(' & ')}{' '}
-                          at minimum until{' '}
-                          {modulesAtMinimum.map((m, i) => (
-                            <span key={i}>
-                              {i > 0 && (i === modulesAtMinimum.length - 1 ? ' & ' : ', ')}
-                              ~{m.unlockAt} ({m.name.replace(/\s*\(.*\)/, '')})
-                            </span>
-                          ))}
-                          {' emp.'}
-                        </div>
-                      )}
                     </td>
                   </tr>
                 )}
@@ -2011,7 +1973,7 @@ export default function PayrollQuoteCalculator() {
             )}
 
             {/* S-Corp: inline services on same page (print only merges, screen shows separately) */}
-            {sCorpMode && clientFacing && (
+            {sCorpMode && (
               <div className="hidden print-scorp-services mt-4 pt-4 border-t border-stone-200">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-1 h-4 bg-brand-gold rounded-full"></div>
@@ -2092,8 +2054,8 @@ export default function PayrollQuoteCalculator() {
           </div>
         </section>
 
-        {/* Page 2: Additional Services & Rates (Client Facing Only, separate page in print) */}
-        {clientFacing && !sCorpMode && (() => {
+        {/* Page 2: Additional Services & Rates (separate page in print) */}
+        {!sCorpMode && (() => {
           // Build the annual recap. Each row shows the AFTER-DISCOUNT amount so
           // reps can drop the annual figure directly into Salesforce.
           const periods = FREQUENCIES[frequency].periods;
@@ -2158,7 +2120,8 @@ export default function PayrollQuoteCalculator() {
 
           <div className="p-8 space-y-8">
 
-            {/* TOP: Estimated Annual Recap */}
+            {/* TOP: Estimated Annual Recap (only when Show Annual Totals is on) */}
+            {showAnnual && (<>
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-1 h-5 bg-brand-navy rounded-full"></div>
@@ -2214,6 +2177,7 @@ export default function PayrollQuoteCalculator() {
 
             {/* Divider */}
             <div className="border-t-2 border-dashed border-stone-200"></div>
+            </>)}
 
             {/* BOTTOM: Ancillary Rate Sheet — compact grouped layout */}
             <div className="rate-sheet">
@@ -2336,8 +2300,8 @@ export default function PayrollQuoteCalculator() {
           );
         })()}
 
-        {/* Page 3: Services Included (Client Facing Only, separate page in print — hidden for S-Corp print) */}
-        {clientFacing && (
+        {/* Page 3: Services Included (separate page in print — hidden for S-Corp print) */}
+        {(
           <section className={`bg-white shadow-xl border border-stone-200 rounded-2xl overflow-hidden max-w-4xl mx-auto mt-10 print-container print-page-break print-services-compact ${sCorpMode ? 'print-scorp-hide' : ''}`}>
 
             {/* Services Header */}
