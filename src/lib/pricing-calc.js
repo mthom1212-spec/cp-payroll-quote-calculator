@@ -93,6 +93,7 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
     ancillaryRateOverrides = {},
     setupFees = {},
     customEmpCount = null,
+    ignoreMinimum = false,
   } = state;
 
   const config = configSource[moduleKey];
@@ -147,8 +148,10 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   else headcount = empCount;
 
   const rawCost = adjBase + (adjPepm * headcount);
-  const basePer = Math.max(rawCost, adjMin);
-  const isMinApplied = rawCost < adjMin;
+  // ignoreMinimum → price as if the client were above every floor (used for
+  // the per-employee adjustment shown on the quote).
+  const basePer = ignoreMinimum ? rawCost : Math.max(rawCost, adjMin);
+  const isMinApplied = !ignoreMinimum && rawCost < adjMin;
 
   const jurisdictionFee = (moduleKey === 'payroll' && additionalJurisdictions > 0)
     ? additionalJurisdictions * JURISDICTION_FEE_PER_LOCATION
@@ -261,7 +264,7 @@ export const calculateBenefitEdiOneTime = (benefitEdi) => {
   return BENEFIT_EDI_FIRST_FEED + (BENEFIT_EDI_ADDL_FEED * (feeds - 1));
 };
 
-export const calculateBenefitEdiRecurring = ({ benefitEdi, employeeCount, frequency }) => {
+export const calculateBenefitEdiRecurring = ({ benefitEdi, employeeCount, frequency, ignoreMinimum = false }) => {
   const empty = { perPayroll: 0, annual: 0, rate: 0, min: 0, isMinApplied: false, baseRate: 0 };
   if (!benefitEdi?.enabled) return empty;
   const periods = FREQUENCIES[frequency].periods;
@@ -271,8 +274,8 @@ export const calculateBenefitEdiRecurring = ({ benefitEdi, employeeCount, freque
   const rate = baseRate;
   const min = BENEFIT_EDI_MIN;
   const rawCost = rate * employeeCount;
-  const perPayroll = Math.max(rawCost, min);
-  const isMinApplied = rawCost < min;
+  const perPayroll = ignoreMinimum ? rawCost : Math.max(rawCost, min);
+  const isMinApplied = !ignoreMinimum && rawCost < min;
   const annual = perPayroll * periods;
   return { perPayroll, annual, rate, min, isMinApplied, baseRate };
 };
@@ -483,7 +486,7 @@ export const calculateTotals = (state) => {
  *   doesn't distort the number the rep quotes the client.
  */
 export const totalPerPayrollAt = (empCount, state, opts = {}) => {
-  const { perEmployeeOnly = false } = opts;
+  const { perEmployeeOnly = false, ignoreMinimum = false } = opts;
   const {
     sCorpMode,
     frequency,
@@ -511,7 +514,7 @@ export const totalPerPayrollAt = (empCount, state, opts = {}) => {
   } else {
     Object.keys(PRICING_CONFIG).forEach(key => {
       if (selectedModules[key]) {
-        const pp = calculateModuleCost(key, PRICING_CONFIG, { ...state, customEmpCount: empCount }).perPayroll;
+        const pp = calculateModuleCost(key, PRICING_CONFIG, { ...state, customEmpCount: empCount, ignoreMinimum }).perPayroll;
         if (discountOptOut[key]) nonDiscountable += pp;
         else discountable += pp;
       }
@@ -520,7 +523,7 @@ export const totalPerPayrollAt = (empCount, state, opts = {}) => {
       if (!selectedAncillary[key]) return;
       // Monthly-billed items (flat or per-user) aren't per-payroll-per-employee rates.
       if (perEmployeeOnly && ANCILLARY_PRICING[key].monthlyBilling) return;
-      const pp = calculateModuleCost(key, ANCILLARY_PRICING, { ...state, customEmpCount: empCount }).perPayroll;
+      const pp = calculateModuleCost(key, ANCILLARY_PRICING, { ...state, customEmpCount: empCount, ignoreMinimum }).perPayroll;
       if (discountOptOut[key]) nonDiscountable += pp;
       else discountable += pp;
     });
@@ -536,7 +539,7 @@ export const totalPerPayrollAt = (empCount, state, opts = {}) => {
   }
 
   if (benefitEdi.enabled) {
-    const rec = calculateBenefitEdiRecurring({ benefitEdi, employeeCount: empCount, frequency });
+    const rec = calculateBenefitEdiRecurring({ benefitEdi, employeeCount: empCount, frequency, ignoreMinimum });
     if (discountOptOut.benefitEdi) nonDiscountable += rec.perPayroll;
     else discountable += rec.perPayroll;
   }

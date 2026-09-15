@@ -263,10 +263,11 @@ export default function PayrollQuoteCalculator() {
 
   // ±1 employee delta — only true per-employee per-payroll rates. Flat monthly
   // fees and tiered-by-headcount fees (e.g. isolved Virtual Clock) are excluded
-  // so a tier jump doesn't masquerade as a per-employee cost.
+  // so a tier jump doesn't masquerade as a per-employee cost. Minimums are
+  // ignored so the figure is the real per-employee rate once floors are met.
   const perEmployeeDelta = (() => {
     const s = calcState();
-    const at = (n) => pricingCalc.totalPerPayrollAt(n, s, { perEmployeeOnly: true });
+    const at = (n) => pricingCalc.totalPerPayrollAt(n, s, { perEmployeeOnly: true, ignoreMinimum: true });
     const base = at(employeeCount);
     return {
       up: at(employeeCount + 1) - base,
@@ -1936,7 +1937,7 @@ export default function PayrollQuoteCalculator() {
                         <span className="text-slate-500 not-italic">Per-employee adj.</span>{' '}
                         +{formatMoney(perEmployeeDelta.up)} added
                         {' / '}&minus;{formatMoney(perEmployeeDelta.down)} terminated
-                        <span className="text-slate-300"> · per payroll · per-employee rates only</span>
+                        <span className="text-slate-300"> · per payroll · per-employee rates only · applies once any service minimums are met</span>
                       </div>
                     </td>
                   </tr>

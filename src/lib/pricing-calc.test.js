@@ -1063,3 +1063,51 @@ describe('totalPerPayrollAt perEmployeeOnly', () => {
     near(up, 2.70 + 2.70 + 1.00); // payroll + tlm (above min) + scheduling
   });
 });
+
+describe('ignoreMinimum (per-employee adjustment as if above all floors)', () => {
+  it('calculateModuleCost prices raw base + pepm when ignoreMinimum is set', () => {
+    // TLM at 10 emp: raw $27 < $50 min
+    const s = baseState({ employeeCount: 10, selectedModules: { payroll: true, tlm: true } });
+    const withMin = calculateModuleCost('tlm', PRICING_CONFIG, s);
+    const noMin = calculateModuleCost('tlm', PRICING_CONFIG, { ...s, ignoreMinimum: true });
+    near(withMin.perPayroll, 50);
+    expect(withMin.isMinApplied).toBe(true);
+    near(noMin.perPayroll, 27);
+    expect(noMin.isMinApplied).toBe(false);
+  });
+
+  it('calculateBenefitEdiRecurring ignores the $40 floor when asked', () => {
+    const args = { benefitEdi: { enabled: true, cobraBundle: false }, employeeCount: 10, frequency: 'biweekly' };
+    near(calculateBenefitEdiRecurring(args).perPayroll, 40);
+    near(calculateBenefitEdiRecurring({ ...args, ignoreMinimum: true }).perPayroll, 7.5);
+  });
+
+  it('per-employee delta below minimums equals the sum of per-employee rates', () => {
+    const s = baseState({
+      employeeCount: 10,
+      selectedModules: { payroll: true, tlm: true, aca: true },
+      selectedIsolved: { scheduling: true },
+      benefitEdi: { enabled: true, cobraBundle: false },
+    });
+    const opts = { perEmployeeOnly: true, ignoreMinimum: true };
+    const at = (n) => totalPerPayrollAt(n, s, opts);
+    const up = at(11) - at(10);
+    const down = at(10) - at(9);
+    // payroll 2.70 + tlm 2.70 + aca 0.60 + scheduling 1.00 + benefit EDI 0.75
+    near(up, 2.70 + 2.70 + 0.60 + 1.00 + 0.75);
+    near(down, up);
+  });
+
+  it('ignoreMinimum does not change the delta when already above every floor', () => {
+    const s = baseState({ employeeCount: 60, selectedModules: { payroll: true, tlm: true } });
+    const a = totalPerPayrollAt(61, s, { perEmployeeOnly: true }) - totalPerPayrollAt(60, s, { perEmployeeOnly: true });
+    const b = totalPerPayrollAt(61, s, { perEmployeeOnly: true, ignoreMinimum: true }) - totalPerPayrollAt(60, s, { perEmployeeOnly: true, ignoreMinimum: true });
+    near(a, b);
+  });
+
+  it('discount still applies to the ignoreMinimum delta', () => {
+    const s = baseState({ employeeCount: 10, selectedModules: { payroll: true }, discountPercent: 10 });
+    const opts = { perEmployeeOnly: true, ignoreMinimum: true };
+    near(totalPerPayrollAt(11, s, opts) - totalPerPayrollAt(10, s, opts), 2.70 * 0.9);
+  });
+});
