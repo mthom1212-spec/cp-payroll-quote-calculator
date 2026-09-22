@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Passcode Hash Generator — Quote Builder Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root { --navy: #004F71; --navy-dark: #003950; --gold: #C49A6C; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 40px 20px; background: #FAFAF9; color: #1e293b;
+      font-family: "DM Sans", system-ui, sans-serif; line-height: 1.55;
+    }
+    .wrap { max-width: 620px; margin: 0 auto; }
+    .card { background: #fff; border: 1px solid #e7e5e4; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 12px 28px rgba(0,79,113,.09), 0 4px 10px rgba(0,79,113,.05); }
+    .head { background: linear-gradient(135deg, #003950 0%, #004F71 55%, #006890 100%);
+            color: #fff; padding: 22px 28px; display: flex; align-items: center; gap: 12px; }
+    .head h1 { font-family: "Source Serif 4", Georgia, serif; font-size: 19px; margin: 0; font-weight: 700; }
+    .head .sub { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+    .body { padding: 26px 28px 30px; }
+    label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: .08em; color: #64748b; margin-bottom: 8px; }
+    input[type=text] { width: 100%; padding: 11px 13px; font-size: 15px; font-family: inherit;
+            border: 1px solid #d6d3d1; border-radius: 9px; }
+    input[type=text]:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(0,79,113,.14); }
+    .out { margin-top: 18px; display: none; }
+    .out.show { display: block; }
+    code { display: block; background: #f5f5f4; border: 1px solid #e7e5e4; border-radius: 9px;
+           padding: 12px 13px; font-size: 12.5px; word-break: break-all;
+           font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+    button { margin-top: 10px; padding: 9px 16px; font-family: inherit; font-size: 13px; font-weight: 600;
+             background: var(--navy); color: #fff; border: 0; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #006890; }
+    .steps { margin-top: 26px; padding-top: 22px; border-top: 1px solid #f0efee; font-size: 13.5px; }
+    .steps h2 { font-family: "Source Serif 4", Georgia, serif; font-size: 15px; color: var(--navy); margin: 0 0 10px; }
+    .steps ol { margin: 0; padding-left: 20px; }
+    .steps li { margin-bottom: 8px; }
+    .steps code { display: inline; padding: 1.5px 5px; font-size: 12px; }
+    .note { margin-top: 20px; font-size: 12px; color: #78716c; background: #FDF9F3;
+            border-left: 3px solid var(--gold); padding: 12px 14px; border-radius: 0 8px 8px 0; }
+    a { color: var(--navy); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="head">
+      <svg viewBox="0 0 24 24" width="34" height="34" role="img" aria-label="Creative Planning">
+        <path d="M16.536 7.47761L20.5019 3.51492C18.3285 1.34328 15.326 0 12.0099 0C5.37755 0 0 5.37313 0 12C0 18.6269 5.37755 24 12.0099 24C15.326 24 18.3285 22.6567 20.5019 20.4851L16.536 16.5224L12.0099 21.0448L2.95766 12L12.0099 2.95522L16.536 7.47761Z" fill="#F8F1E6"/>
+        <path d="M12.0066 5.96301L5.96216 12.0024L12.0066 18.0419L18.051 12.0024L12.0066 5.96301Z" fill="#CCA15E"/>
+      </svg>
+      <div>
+        <h1>Passcode Hash Generator</h1>
+        <div class="sub">Quote Builder · Admin Use</div>
+      </div>
+    </div>
+
+    <div class="body">
+      <label for="pc">New passcode</label>
+      <input type="text" id="pc" placeholder="e.g. CPPQuote2026" autocomplete="off" autofocus />
+
+      <div class="out" id="out">
+        <label style="margin-top:18px">Paste this hash into access.js</label>
+        <code id="hash"></code>
+        <button id="copy" type="button">Copy hash</button>
+      </div>
+
+      <div class="steps">
+        <h2>How to update the passcode</h2>
+        <ol>
+          <li>Type the new passcode above and copy the hash.</li>
+          <li>Open <code>src/constants/access.js</code> in the GitHub repo and click the pencil icon to edit.</li>
+          <li>Add the hash to the <code>ACCESS_CODE_HASHES</code> list, with a comment noting which passcode it is and the date. To retire the old passcode, delete its line; to let both work for a while, keep both.</li>
+          <li>Commit to the <code>main</code> branch. The site rebuilds itself in about two minutes.</li>
+        </ol>
+      </div>
+
+      <div class="note">
+        Anyone already signed in stays signed in as long as their passcode is still
+        in the list. Delete a hash and everyone who used that passcode is asked for
+        a new one on their next visit.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('pc');
+  const out = document.getElementById('out');
+  const hashEl = document.getElementById('hash');
+  const copyBtn = document.getElementById('copy');
+
+  // Must match hashPasscode() in src/constants/access.js: trim + lowercase, SHA-256 hex.
+  async function sha256(raw) {
+    const bytes = new TextEncoder().encode(String(raw).trim().toLowerCase());
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  input.addEventListener('input', async () => {
+    const v = input.value.trim();
+    if (!v) { out.classList.remove('show'); return; }
+    hashEl.textContent = await sha256(v);
+    out.classList.add('show');
+    copyBtn.textContent = 'Copy hash';
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(hashEl.textContent);
+      copyBtn.textContent = 'Copied';
+    } catch {
+      copyBtn.textContent = 'Select the hash above and copy it';
+    }
+  });
+</script>
+</body>
+</html>
