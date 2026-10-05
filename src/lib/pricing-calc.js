@@ -94,6 +94,7 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
     setupFees = {},
     customEmpCount = null,
     ignoreMinimum = false,
+    customGL = { included: false, amount: 0 },
   } = state;
 
   const config = configSource[moduleKey];
@@ -182,12 +183,19 @@ export const calculateModuleCost = (moduleKey, configSource, state) => {
   }
 
   const annual = (perPayroll * FREQUENCIES[frequency].periods) + yearEnd;
-  const setup = setupFees[moduleKey]?.included
+  const baseSetup = setupFees[moduleKey]?.included
     ? parseFloat(setupFees[moduleKey].amount || 0)
     : 0;
+  // Custom General Ledger is a one-time build quoted with Payroll implementation.
+  // It rides along in the payroll row's setup figure, independent of whether the
+  // payroll implementation fee itself is waived.
+  const customGLFee = (moduleKey === 'payroll' && customGL?.included)
+    ? parseFloat(customGL.amount || 0)
+    : 0;
+  const setup = baseSetup + customGLFee;
 
   return {
-    perPayroll, annual, setup, yearEnd, isMinApplied,
+    perPayroll, annual, setup, baseSetup, customGLFee, yearEnd, isMinApplied,
     rates: { base: adjBase, pepm: adjPepm, min: adjMin },
     headcount,
     // Breakdown used by the UI to explain the count when it differs from

@@ -4,7 +4,7 @@ import {
   STATE_TAX_ID_PER_ID, PYTD_HOURLY, PYTD_PER_STATEMENT,
   BENEFIT_EDI_FIRST_FEED, BENEFIT_EDI_ADDL_FEED, BENEFIT_EDI_MIN,
   BENEFIT_EDI_RATE_STD, BENEFIT_EDI_RATE_BUNDLE,
-  JURISDICTION_FEE_PER_LOCATION,
+  JURISDICTION_FEE_PER_LOCATION, CUSTOM_GL_FEE,
   SCORP_YEAR_END_BASE, SCORP_YEAR_END_PER_FORM,
   SCORP_ANNUAL_FLAT, SCORP_QUARTERLY_FLAT, SCORP_BIWEEKLY_BASE,
   formatMoney, formatDate,
@@ -156,6 +156,7 @@ export default function RateSheet({ onPrint }) {
 
   // ---- One-time & specialty ----
   const specialtyRows = [
+    { cells: [<>Custom General Ledger{sub('Custom GL mapping/build — quoted with Payroll implementation')}</>, dash, <>{money(CUSTOM_GL_FEE)}<span className="text-slate-400"> one-time</span></>] },
     { cells: ['State Tax ID Application', <>{money(STATE_TAX_ID_PER_ID)}<span className="text-slate-400"> per agency</span></>, dash] },
     { cells: [<>Payroll Year-to-Date Loading (PYTD){sub('Historical payroll data load')}</>, <>{money(PYTD_HOURLY)}<span className="text-slate-400">/hr</span> + {money(PYTD_PER_STATEMENT)}<span className="text-slate-400">/statement</span></>, dash] },
     {

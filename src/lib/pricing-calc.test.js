@@ -1111,3 +1111,53 @@ describe('ignoreMinimum (per-employee adjustment as if above all floors)', () =>
     near(totalPerPayrollAt(11, s, opts) - totalPerPayrollAt(10, s, opts), 2.70 * 0.9);
   });
 });
+
+describe('Custom General Ledger fee', () => {
+  // The shared fixture carries no setup fees, so set the payroll implementation
+  // fee explicitly to prove the two amounts stack.
+  const glState = (overrides = {}) => baseState({
+    selectedModules: { payroll: true },
+    setupFees: { payroll: { included: true, amount: 1000 } },
+    customGL: { included: true, amount: 250 },
+    ...overrides,
+  });
+
+  it('adds to the payroll row setup alongside the implementation fee', () => {
+    const c = calculateModuleCost('payroll', PRICING_CONFIG, glState());
+    near(c.baseSetup, 1000);
+    near(c.customGLFee, 250);
+    near(c.setup, 1250);
+  });
+
+  it('still bills when the payroll implementation fee is waived', () => {
+    const s = glState();
+    const c = calculateModuleCost('payroll', PRICING_CONFIG, {
+      ...s,
+      setupFees: { ...s.setupFees, payroll: { included: false, amount: 1000 } },
+    });
+    near(c.baseSetup, 0);
+    near(c.setup, 250);
+  });
+
+  it('is zero when not included, and never attaches to a non-payroll module', () => {
+    near(calculateModuleCost('payroll', PRICING_CONFIG, glState({ customGL: { included: false, amount: 250 } })).setup, 1000);
+    const tlm = calculateModuleCost('tlm', PRICING_CONFIG, glState({
+      selectedModules: { payroll: true, tlm: true },
+      setupFees: { payroll: { included: true, amount: 1000 }, tlm: { included: true, amount: 1500 } },
+    }));
+    near(tlm.customGLFee, 0);
+    near(tlm.setup, 1500);
+  });
+
+  it('flows into totalSetup and leaves recurring pricing untouched', () => {
+    const withGL = calculateTotals(glState());
+    const without = calculateTotals(glState({ customGL: { included: false, amount: 250 } }));
+    near(withGL.totalSetup - without.totalSetup, 250);
+    near(withGL.finalPerPayroll, without.finalPerPayroll);
+    near(withGL.finalAnnual, without.finalAnnual);
+  });
+
+  it('honors an edited amount', () => {
+    near(calculateModuleCost('payroll', PRICING_CONFIG, glState({ customGL: { included: true, amount: '400' } })).customGLFee, 400);
+  });
+});

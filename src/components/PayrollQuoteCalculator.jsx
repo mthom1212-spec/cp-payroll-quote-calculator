@@ -3,7 +3,7 @@ import {
   PRICING_CONFIG, FREQUENCIES, STANDARD_FREQUENCIES, SCORP_FREQUENCIES,
   MODULE_SERVICES, ANCILLARY_PRICING, ANCILLARY_USAGE, ISOLVED_ADDONS,
   USAGE_RATE_SHEET, SHIPPING_RATE_SHEET,
-  BENEFIT_EDI_MIN, JURISDICTION_FEE_PER_LOCATION,
+  BENEFIT_EDI_MIN, JURISDICTION_FEE_PER_LOCATION, CUSTOM_GL_FEE,
   formatMoney, formatDate,
 } from '../constants/pricing';
 import * as pricingCalc from '../lib/pricing-calc';
@@ -58,6 +58,8 @@ export default function PayrollQuoteCalculator() {
 
   const [payrollBaseOverride, setPayrollBaseOverride] = useState(null);
   const [additionalJurisdictions, setAdditionalJurisdictions] = useState(0);
+  // Custom General Ledger build — one-time, rides with Payroll implementation.
+  const [customGL, setCustomGL] = useState({ included: false, amount: CUSTOM_GL_FEE });
 
   // Ancillary rate overrides: { [id]: { pepm: number|null, minimum: number|null } }
   const [ancillaryRateOverrides, setAncillaryRateOverrides] = useState({});
@@ -141,7 +143,7 @@ export default function PayrollQuoteCalculator() {
       payrollYearEndRateOverride, annualFormsOverride,
       expenseUserCount, frequency, discountPercent, discountOptOut,
       showAnnual, showRepInfo, repName, repPhone, repEmail,
-      selectedModules, payrollBaseOverride, additionalJurisdictions,
+      selectedModules, payrollBaseOverride, additionalJurisdictions, customGL,
       showAncillary, selectedAncillary, sCorpMode, sCorpSetup,
       stateTaxId, pytd, benefitEdi, ancillaryRateOverrides, setupFees,
       selectedIsolved, isolvedSetupFees,
@@ -177,6 +179,7 @@ export default function PayrollQuoteCalculator() {
     if (s.selectedModules) setSelectedModules(s.selectedModules);
     if (s.payrollBaseOverride !== undefined) setPayrollBaseOverride(s.payrollBaseOverride);
     if (s.additionalJurisdictions !== undefined) setAdditionalJurisdictions(s.additionalJurisdictions);
+    if (s.customGL !== undefined) setCustomGL(s.customGL);
     if (s.showAncillary !== undefined) setShowAncillary(s.showAncillary);
     if (s.selectedAncillary) setSelectedAncillary(s.selectedAncillary);
     if (s.sCorpMode !== undefined) setSCorpMode(s.sCorpMode);
@@ -223,7 +226,7 @@ export default function PayrollQuoteCalculator() {
   const calcState = () => ({
     employeeCount, w2Count, count1099, frequency,
     payrollBaseOverride, payrollYearEndRateOverride, annualFormsOverride,
-    additionalJurisdictions, expenseUserCount,
+    additionalJurisdictions, expenseUserCount, customGL,
     ancillaryRateOverrides, setupFees,
     selectedModules, selectedAncillary,
     selectedIsolved, isolvedSetupFees,
@@ -245,7 +248,7 @@ export default function PayrollQuoteCalculator() {
       selectedModules, selectedAncillary, employeeCount, w2Count, count1099,
       payrollYearEndRateOverride, annualFormsOverride, expenseUserCount,
       frequency, discountPercent, discountOptOut, setupFees, payrollBaseOverride,
-      sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions,
+      sCorpMode, sCorpSetup, stateTaxId, additionalJurisdictions, customGL,
       ancillaryRateOverrides, pytd, benefitEdi,
       selectedIsolved, isolvedSetupFees,
     ],
@@ -972,6 +975,34 @@ export default function PayrollQuoteCalculator() {
                                   </div>
                                 )}
 
+                                {/* Custom General Ledger (one-time, quoted with implementation) */}
+                                {module.id === 'payroll' && (
+                                  <div className="mt-2 flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <Toggle
+                                        checked={customGL.included}
+                                        onChange={() => setCustomGL(prev => ({ ...prev, included: !prev.included }))}
+                                        label="Toggle Custom General Ledger fee"
+                                      />
+                                      <span className="text-[11px] text-slate-600 font-medium">Custom General Ledger (one-time)</span>
+                                    </div>
+                                    {customGL.included ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-slate-400 text-sm">$</span>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          value={customGL.amount}
+                                          onChange={(e) => setCustomGL(prev => ({ ...prev, amount: e.target.value }))}
+                                          className="w-20 text-right text-sm border-b border-stone-300 focus:border-brand-navy outline-none bg-transparent py-0.5"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <span className="text-[11px] text-slate-400 italic">Not included</span>
+                                    )}
+                                  </div>
+                                )}
+
                                 {/* Year-end line item */}
                                 {module.hasYearEnd && (
                                   <div className="mt-2 flex justify-between items-center text-[11px] text-brand-navy/70 bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-100">
@@ -1693,6 +1724,12 @@ export default function PayrollQuoteCalculator() {
                         {module.id === 'payroll' && !sCorpMode && (
                           <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
                             + New Hire Reporting: $3/New Hire
+                          </div>
+                        )}
+                        {module.id === 'payroll' && costs.customGLFee > 0 && (
+                          <div className="text-[10px] text-brand-navy/60 font-medium mt-0.5">
+                            + Custom General Ledger: {formatMoney(costs.customGLFee)} one-time
+                            {costs.baseSetup > 0 && ' (included in Setup)'}
                           </div>
                         )}
                         {module.id === 'payroll' && additionalJurisdictions > 0 && (

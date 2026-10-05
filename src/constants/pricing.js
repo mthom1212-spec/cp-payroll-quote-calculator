@@ -20,6 +20,9 @@ export const BENEFIT_EDI_MIN = 40;
 export const BENEFIT_EDI_RATE_STD = 0.75;
 export const BENEFIT_EDI_RATE_BUNDLE = 0.90;
 export const JURISDICTION_FEE_PER_LOCATION = 10;
+
+// Custom General Ledger build — one-time, quoted alongside Payroll implementation.
+export const CUSTOM_GL_FEE = 250;
 export const SCORP_YEAR_END_BASE = 150;
 export const SCORP_YEAR_END_PER_FORM = 6.95;
 export const SCORP_ANNUAL_FLAT = 1000;
